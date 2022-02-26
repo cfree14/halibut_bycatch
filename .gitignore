@@ -8,3 +8,8 @@ admin
 drafts
 references
 presentations
+
+# Confidential data
+data/wcgop/raw
+data/wcgop/processed
+
