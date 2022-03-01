@@ -18,18 +18,6 @@ plotdir <- "data/landings/barsky/figures"
 data1_orig <- readxl::read_excel(file.path(indir, "Barsky_1990.xlsx"), sheet=1)
 data2_orig <- readxl::read_excel(file.path(indir, "Barsky_1990.xlsx"), sheet=2)
 
-# PACFIN data
-pacfin_orig <- wcfish::pacfin_all6
-pacfin_hal <- pacfin_orig %>%
-  # Reduce
-  filter(state=="California" & comm_name %in% c("California halibut", "Nom. Calif halibut")) %>%
-  # Sum by year
-  group_by(year) %>%
-  summarize(landings_mt=sum(landings_mt)) %>%
-  # Convert units
-  mutate(landings_kg=landings_mt*1000,
-         landings_lb=measurements::conv_unit(landings_kg, "kg", "lbs"))
-
 
 # Format data
 ################################################################################
