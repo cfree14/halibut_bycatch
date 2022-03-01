@@ -119,6 +119,7 @@ range(data1$year)
 sort(unique(data1$year))
 
 # Sector
+sort(unique(data1$gear))
 sort(unique(data1$sector))
 
 # States/ports
