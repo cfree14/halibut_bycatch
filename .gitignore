@@ -12,4 +12,7 @@ presentations
 # Confidential data
 data/wcgop/raw
 data/wcgop/processed
-
+data/cdfw_obs/raw
+data/cdfw_obs/processed
+data/swfsc_obs/raw
+data/swfsc_obs/processed

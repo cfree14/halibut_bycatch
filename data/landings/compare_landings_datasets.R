@@ -16,7 +16,10 @@ plotdir <- "data/landings"
 noaa_orig <- readRDS("data/landings/noaa/processed/NOAA_1950_2019_CA_halibut_landings_by_sector.Rds")
 barsky_orig <- readRDS("data/landings/barsky/processed/1916_1988_CA_halibut_landings_by_country.Rds")
 pacfin_orig <- readRDS("data/landings/pacfin/processed/PACFIN_1981_2020_CA_halibut_landings_by_port_complex.Rds")
-
+gemm_orig <- readRDS("data/gemm/processed/GEMM_2002_2020_data.Rds")
+swfsc_orig <- wcfish::swfsc
+cdfw_orig1 <- wcfish::cdfw_waters
+cdfw_orig2 <- wcfish::cdfw_ports
 
 # Build data
 ################################################################################
@@ -40,9 +43,44 @@ pacfin <- pacfin_orig %>%
             value_usd=sum(revenues_usd)) %>%
   mutate(dataset="PACFIN")
 
+# Format GEMM
+gemm <- gemm_orig %>%
+  filter(species=="California Halibut" & sector_type %in% c("commercial", "tribal")) %>%
+  group_by(year) %>%
+  summarise(landings_mt=sum(landings_mt)) %>%
+  ungroup() %>%
+  mutate(dataset="GEMM",
+         landings_lb=measurements::conv_unit(landings_mt*1000, "kg", "lbs")) %>%
+  select(dataset, year, landings_lb)
+
+# Format SWFSC
+# Not included - we know this dataset excludes landings captured in Mexico while the others don't
+swfsc <- swfsc_orig %>%
+  filter(comm_name_orig %in% c("Halibut, California", "Halibut, Unspecified")) %>%
+  group_by(year) %>%
+  summarize(landings_lb=sum(landings_lb)) %>%
+  ungroup() %>%
+  mutate(dataset="SWFSC")
+
+# Format CDFW
+cdfw1 <- cdfw_orig1 %>%
+  filter(comm_name %in% c("California halibut")) %>%
+  group_by(year) %>%
+  summarize(landings_lb=sum(landings_lb)) %>%
+  ungroup() %>%
+  mutate(dataset="CDFW (waters)")
+
+# Format CDFW
+cdfw2 <- cdfw_orig2 %>%
+  filter(comm_name %in% c("California halibut")) %>%
+  group_by(year) %>%
+  summarize(landings_lb=sum(landings_lb)) %>%
+  ungroup() %>%
+  mutate(dataset="CDFW (ports)")
 
 # Merge datasets
-data <- bind_rows(noaa, barsky, pacfin)
+data <- bind_rows(noaa, barsky, pacfin, gemm, cdfw1, cdfw2) %>%
+  complete(dataset, year) # swfsc
 
 
 # Plot data

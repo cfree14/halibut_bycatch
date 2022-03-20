@@ -22,6 +22,11 @@ plotdir <- "data/gemm/figures"
 # Read data
 data_orig <- readxl::read_excel(file.path(indir, "selection.xlsx"), sheet="data", na="N/A")
 
+# Read sector key (only the type column is robust)
+sector_key <- readxl::read_excel(file.path(indir, "GEMM_sector_key.xlsx")) %>%
+  select(sector, type) %>%
+  rename(sector_type=type)
+
 
 # Format data
 ################################################################################
@@ -41,8 +46,10 @@ data <- data_orig %>%
   mutate(discards_cv=as.numeric(discards_cv)) %>%
   # Convert year
   mutate(year=as.numeric(year)) %>%
+  # Add sector type
+  left_join(sector_key, by="sector") %>%
   # Arrange
-  select(sector, mgmt_group, groundfish_fmp_yn, species, year, discards_cv,
+  select(sector_type, sector, mgmt_group, groundfish_fmp_yn, species, year, discards_cv,
          landings_mt, discards_mt, catch_mt, discards_mt_adj, catch_mt_adj, everything())
 
 
@@ -57,19 +64,19 @@ sum(abs(data$catch_mt_adj -  (data$landings_mt + data$discards_mt_adj)) > 1)
 # Inspect species
 spp_key <- data %>%
   group_by(species) %>%
-  summarize(ntypes=n_distinct(type),
-            types=paste(sort(unique(type)), collapse=", "))
+  summarize(ntypes=n_distinct(groundfish_fmp_yn),
+            types=paste(sort(unique(groundfish_fmp_yn)), collapse=", "))
 
 # Sector group
 sector_key <- data %>%
-  group_by(sector, grouping) %>%
+  group_by(sector) %>%
   summarize(n=n())
 
 # Inspect data
 str(data)
 freeR::complete(data)
 range(data$year)
-table(data$sector) # LE = limited entry, OA = open access,
+table(data$sector) # LE = limited entry, OA = open access, CS = catch shares, DTL = daily trip limit, EM = electronic monitoring
 table(data$mgmt_group)
 table(data$groundfish_fmp_yn)
 table(data$species)

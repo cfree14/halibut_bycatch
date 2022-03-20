@@ -3,11 +3,14 @@
 # Clear workspace
 rm(list = ls())
 
+# Turn off scientific notation
+options(scipen=999)
+
 # Setup
 ################################################################################
 
 # Packages
-# library(tidyverse)
+library(tidyverse)
 
 # Directories
 indir <- "data/gemm/raw"
@@ -21,117 +24,59 @@ data_orig <- readRDS(file=file.path(outdir, "GEMM_2002_2020_data.Rds"))
 # Format data
 ################################################################################
 
-
-pacfin <- wcfish::pacfin_all6 %>%
-  # Reduce
-  filter(state=="California" & comm_name %in% c("California halibut", "Nom. Calif halibut")) %>%
-  # Sum by year
-  group_by(port_name, year) %>%
-  summarize(landings_mt=sum(landings_mt)) %>%
-  # Convert units
-  mutate(landings_kg=landings_mt*1000,
-         landings_lb=measurements::conv_unit(landings_kg, "kg", "lbs")) %>%
-  # Format ports
-  mutate(port_name=gsub(" Area ports", "", port_name),
-         port_name=recode(port_name,
-                          "Other/Unknown California ports 2"="Unknown"),
-         port_name=factor(port_name,
-                          levels=c("San Diego", "Los Angeles", "Santa Barbara",
-                                   "Morro Bay", "Monterey", "San Francisco",
-                                   "Bodega Bay", "Fort Bragg", "Crescent City", "Eureka", "Other") %>% rev()))
-
-# Plot
-g1 <- ggplot(pacfin, aes(x=year, y=landings_mt, fill=port_name)) +
-  geom_bar(stat="identity") +
-  # Labels
-  labs(x="", y="Catch (mt)") +
-  # Legend
-  scale_fill_discrete(name="") +
-  # Theme
-  theme_bw()
-g1
-
-
-# Build data
-################################################################################
-
-# Halibut data
-data <- data_orig %>%
-  # CA halibut
-  filter(species=="California Halibut")
-
-# Annual landings/discards
-stats1 <- data %>%
-  # Summarize
-  group_by(year) %>%
-  summarize(landings_mt=sum(landings_mt),
-            discards_mt=sum(discards_mt)) %>%
+# Format data
+data1 <- data_orig %>%
+  # Filter
+  filter(species=="California Halibut" & sector_type %in% c("commercial", "tribal")) %>%
+  # Annual by sector
+  group_by(sector, year) %>%
+  summarise(landings_mt=sum(landings_mt)) %>%
   ungroup() %>%
-  # Gather
-  gather(key="type", value="catch_mt", 2:ncol(.)) %>%
-  mutate(type=type %>% gsub("_mt", "", .) %>% stringr::str_to_sentence())
+  # Convert
+  mutate(landings_lb=measurements::conv_unit(landings_mt*1000, "kg", "lbs"))
 
-# Plot
-g1 <- ggplot(stats1, aes(x=year, y=catch_mt, fill=type)) +
-  geom_bar(stat="identity") +
-  # Plot PACFIN
-  geom_line(data=pacfin, aes(x=year, y=landings_mt), inherit.aes = F) +
-  # Labels
-  labs(x="", y="Catch (mt)") +
-  # Legend
-  scale_fill_discrete(name="") +
-  # Theme
-  theme_bw()
-g1
-
-
-
-
-
-
-
-
-# Identify major sectors
-data <- data_orig %>%
-  # CA halibut
-  filter(species=="California Halibut") %>%
+# Identify major sectora
+stats1 <- data1 %>%
   # Total by sector
   group_by(sector) %>%
-  summarize(landings_mt=sum(landings_mt)) %>%
-  ungroup()
-
-# Major sectors
-major_sectors <- c("LE CA Halibut", "OA CA Halibut", "Combined LE & OA CA Halibut",
-                   "Research", "Incidental")
-
-
-# Build data
-data <- data_orig %>%
-  # CA halibut
-  filter(species=="California Halibut") %>%
-  # Group sectors
-  mutate(sector_simple=ifelse(!sector %in% major_sectors, "Other", sector)) %>%
-  # Annual catch by sector
-  group_by(sector_simple, year) %>%
-  summarize(landings_mt=sum(landings_mt)) %>%
+  summarize(landings_lb=sum(landings_lb)) %>%
   ungroup() %>%
   # Arrange
-  arrange(year, desc(landings_mt))
+  arrange(desc(landings_lb)) %>%
+  # Calc proportion
+  mutate(landings_prop=landings_lb/sum(landings_lb))
+
+# Summarize by generalized sectors
+major_sectors <- stats1$sector[stats1$landings_prop>=0.02]
+data2 <- data1 %>%
+  # Recode sectors
+  mutate(sector=ifelse(sector %in% major_sectors, sector, "Other")) %>%
+  # Annual by sector
+  group_by(sector, year) %>%
+  summarise(landings_lb=sum(landings_lb)) %>%
+  ungroup() %>%
+  # Recode sector
+  mutate(sector=recode(sector,
+                       "Combined LE & OA CA Halibut"="LE/OA CA Halibut"),
+         sector=factor(sector, levels=c("OA CA Halibut", "LE CA Halibut",
+                                        "LE/OA CA Halibut", "Incidental", "Other") %>% rev()))
+
+
+# Plot data
+################################################################################
+
+
 
 # Plot
-g <- ggplot(data, aes(x=year, y=landings_mt, fill=sector_simple)) +
+g <- ggplot(data2, aes(x=year, y=landings_lb/1e6, fill=sector)) +
   geom_bar(stat="identity") +
-  # Landings
+  # Labels
+  labs(x="", y="Landings\n(millions of lbs)") +
+  # Legend
+  scale_fill_discrete(name="Fishery") +
   # Theme
   theme_bw()
 g
-
-
-
-
-
-
-
 
 
 
