@@ -53,6 +53,9 @@ sort(unique(data1$condition_code))
 sort(unique(data1$condition))
 sort(unique(data1$sex))
 
+# Export data
+saveRDS(data1, file=file.path(outdir, "SWFSC_set_net_observer_data.Rds"))
+
 
 # Format data 2
 ################################################################################
@@ -74,9 +77,9 @@ str(data2)
 freeR::complete(data2)
 
 # Inspect columns
+# sort(unique(data2$condition)) ## ALWAYS EMPTY
+# sort(unique(data2$measurement_units)) ## ALWAYS EMPTY
 sort(unique(data2$disposition))
-sort(unique(data2$condition)) ## ALWAYS EMPTY
-sort(unique(data2$measurement_units)) ## ALWAYS EMPTY
 
 # Inspect species key
 spp_key <- data2 %>%
@@ -84,15 +87,17 @@ spp_key <- data2 %>%
   unique()
 
 # Plot lengths
-g <- ggplot(data2, aes(x=length_cm)) +
-  facet_wrap(~comm_name, ncol=8, scales = "free") +
-  geom_density() +
-  # Labels
-  labs(x="Length (cm)", y="Density") +
-  # Theme
-  theme_bw()
-g
+# g <- ggplot(data2, aes(x=length_cm)) +
+#   facet_wrap(~comm_name, ncol=8, scales = "free") +
+#   geom_density() +
+#   # Labels
+#   labs(x="Length (cm)", y="Density") +
+#   # Theme
+#   theme_bw()
+# g
 
+# Export data
+saveRDS(data2, file=file.path(outdir, "SWFSC_set_net_observer_length_comps.Rds"))
 
 
 # Format data 3
@@ -138,5 +143,9 @@ freeR::complete(data3)
 # Inspect
 table(data3$port_depart)
 table(data3$port_return)
+
+# Export data
+saveRDS(data3, file=file.path(outdir, "SWFSC_1990_2017_set_net_observer_trips.Rds"))
+
 
 
