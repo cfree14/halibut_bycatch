@@ -16,3 +16,11 @@ data/cdfw_obs/raw
 data/cdfw_obs/processed
 data/swfsc_obs/raw
 data/swfsc_obs/processed
+data/comm_permits/raw
+data/comm_permits/processed
+data/gillnet_logbooks/raw
+data/gillnet_logbooks/processed
+data/landings_receipts/raw
+data/landings_receipts/processed
+data/trawl_logbooks/raw
+data/trawl_logbooks/processed

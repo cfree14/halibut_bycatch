@@ -41,10 +41,22 @@ data1 <- data_orig1 %>%
          n_damaged=damage_total_count,
          tag_yn=was_tag_present,
          mammal_damage_yn=was_damaged_by_marine_mammals,
-         condition=condition_description)
+         condition=condition_description) %>%
+  # Format sex
+  mutate(sex=ifelse(sex=="", "Unknown", sex),
+         sex=recode(sex,
+                    "U"="Unknown",
+                    "M"="Male",
+                    "F"="Female")) %>%
+  # Format condition
+  mutate(condition=ifelse(condition=="", "Unknown", condition)) %>%
+  # Check totals
+  mutate(n_caught_calc=n_kept+n_returned_alive+n_returned_dead+n_returned_unknown,
+         n_caught_diff=n_caught-n_caught_calc)
 
 # Inspect
 str(data1)
+freeR::complete(data1)
 
 # Inspect
 sort(unique(data1$tag_yn))
@@ -52,6 +64,12 @@ sort(unique(data1$mammal_damage_yn))
 sort(unique(data1$condition_code))
 sort(unique(data1$condition))
 sort(unique(data1$sex))
+
+# Species key
+spp_key <- data1 %>%
+  select(spp_code, comm_name) %>%
+  unique() %>%
+  arrange(spp_code)
 
 # Export data
 saveRDS(data1, file=file.path(outdir, "SWFSC_set_net_observer_data.Rds"))
