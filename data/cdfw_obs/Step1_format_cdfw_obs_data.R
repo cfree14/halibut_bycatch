@@ -16,9 +16,9 @@ plotdir <- "data/cdfw_obs/figures"
 
 # Read data
 list.files(indir)
-data_orig1 <- read.csv(file.path(indir, "GNC8389.csv"), as.is=T)
-data_orig2 <- read.csv(file.path(indir, "GNM8389.csv"), as.is=T)
-data_orig3 <- read.csv(file.path(indir, "GNS8389.csv"), as.is=T)
+data_orig1 <- read.csv(file.path(indir, "GNC8389.csv"), as.is=T, na.strings="")
+data_orig2 <- read.csv(file.path(indir, "GNM8389.csv"), as.is=T, na.strings="")
+data_orig3 <- read.csv(file.path(indir, "GNS8389.csv"), as.is=T, na.strings="")
 
 # Read species key
 spp_key_orig <- readxl::read_excel(file.path(indir, "species codes 2009.xlsx"))
