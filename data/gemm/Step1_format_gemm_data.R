@@ -82,6 +82,13 @@ table(data$groundfish_fmp_yn)
 table(data$species)
 
 
+# Build species key
+################################################################################
+
+# Export species key
+write.csv(spp_key, file=file.path(outdir, "species_key.csv"), row.names = F)
+
+
 # Export data
 ################################################################################
 

@@ -40,13 +40,14 @@ collapse_dates(x=c("2010-02-11, 2010-02-11", "2010-02-18, 2010-02-18, 2010-02-18
 data <- data_orig %>%
   # Rename
   janitor::clean_names("snake") %>%
-  rename(vessel=vessel_name,
+  rename(logbook_id=serial_number,
+         vessel=vessel_name,
          return_date=return_date_string,
          set_lat_dd=set_latitude,
          set_long_dd=set_longitude,
          up_lat_dd=up_latitude,
          up_long_dd=up_longitude,
-         depth_avg_fa=average_depth,
+         depth_avg_fathoms=average_depth,
          catch_lb=pounds,
          catch_lb_conv=converted_pounds,
          spp_code=species_code,
@@ -62,11 +63,25 @@ data <- data_orig %>%
   # Fix and convert landing dates
   mutate(landing_date=collapse_dates(x=landing_date),
          landing_date=lubridate::ymd(landing_date)) %>%
-  # Fix longtidues
+  # Fix longitudes
   mutate(set_long_dd=set_long_dd*-1,
          up_long_dd=up_long_dd*-1) %>%
+  # Format net type
+  mutate(net_type=recode(net_type,
+                         "B"="Bottom",
+                         "D"="Danish or Scottish seine",
+                         "F"="Selective flatfish",
+                         "L"="Large footrope",
+                         "M"="Midwater",
+                         "S"="Small footrope")) %>%
+  # Format region
+  mutate(region=recode_factor(region,
+                               "N"="North (above 40°10'N)",
+                               "NC"="North Central (36° to 40°10'N)",
+                               "C"="Central (34°27'N to 36°N)",
+                               "S"="Southern (below 34°27'N)")) %>%
   # Arrange
-  select(serial_number:return_port_code,
+  select(logbook_id:return_port_code,
          tow_date, tow_month, tow_day, tow_year, everything())
 
 # Inspect
