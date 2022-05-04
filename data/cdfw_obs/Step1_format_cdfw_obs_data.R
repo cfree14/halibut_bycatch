@@ -21,33 +21,14 @@ data_orig2 <- read.csv(file.path(indir, "GNM8389.csv"), as.is=T, na.strings="")
 data_orig3 <- read.csv(file.path(indir, "GNS8389.csv"), as.is=T, na.strings="")
 
 # Read species key
-spp_key_orig <- readxl::read_excel(file.path(indir, "species codes 2009.xlsx"))
-
-# Read port key
-port_key_orig <- read.csv(file.path(indir, "CDFW_port_codes.csv"), as.is=T)
+spp_key <- readRDS("data/cdfw_species/processed/CDFW_species_key.Rds")
 
 
 # Format keys
 ################################################################################
 
-# Format species key
-spp_key <- spp_key_orig %>%
-  # Rename
-  janitor::clean_names("snake") %>%
-  rename(spp_code_num=exsp,
-         spp_code_chr=exsp_text,
-         comm_name_orig=common_name,
-         sci_name=scientific_name) %>%
-  # Arrange
-  select(spp_code_num, spp_code_chr, pacfin_code,
-         comm_name_orig, sci_name, everything())
-
-# Inspect
-str(spp_key)
-freeR::complete(spp_key)
-
-# Export
-saveRDS(spp_key, file=file.path(outdir, "species_key.Rds"))
+# Read port key
+port_key_orig <- read.csv(file.path(indir, "CDFW_port_codes.csv"), as.is=T)
 
 # Format port key
 port_key <- port_key_orig %>%

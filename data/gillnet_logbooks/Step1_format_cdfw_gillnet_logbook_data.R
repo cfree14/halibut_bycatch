@@ -70,6 +70,9 @@ data <- data_orig %>%
          date2=ifelse(grepl("/", date_orig), NA, date_orig) %>% openxlsx::convertToDate() %>% as.character(),
          date=ifelse(!is.na(date1), date1, date2) %>% lubridate::ymd()) %>%
   select(-c(date1, date2)) %>%
+  # Add day of year and date dummy
+  mutate(yday=lubridate::yday(date),
+         date_dummy=paste("2020", lubridate::month(date), lubridate::day(date), sep="-") %>% lubridate::ymd()) %>%
   # Format set type
   mutate(set_type=toupper(set_type),
          set_type=recode(set_type,
@@ -202,7 +205,7 @@ data <- data_orig %>%
   mutate(soak_duration_hr=recode(soak_duration_hr, "24-48"="36") %>% as.numeric()) %>%
   # Arrange
   select(logbook_id, receipt_id, vessel, boat_id, vessel_id, vessel_id_use, permit,
-         year, date_orig, date, set_id,
+         year, date_orig, date, date_dummy, yday, set_id,
          set_type, block_id, block_id_use, block_lat_dd,
          depth_fa, net_length_fa:soak_duration_hr,
          target_spp, comm_name_orig, comm_name, spp_code,
@@ -217,6 +220,8 @@ freeR::complete(data)
 # Inspect
 range(data$year)
 range(data$date, na.rm=T)
+range(data$date_dummy, na.rm=T)
+range(data$yday)
 sort(unique(data$target_spp))
 sort(unique(data$vessel_id))
 table(data$set_type)

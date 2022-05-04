@@ -10,65 +10,77 @@ rm(list = ls())
 library(tidyverse)
 
 # Directories
-indir <- "data/gillnet_logbooks/raw"
-outdir <- "data/gillnet_logbooks/processed"
-plotdir <- "data/gillnet_logbooks/figures"
+indir <- "data/trawl_logbooks/raw"
+outdir <- "data/trawl_logbooks/processed"
+plotdir <- "data/trawl_logbooks/figures"
 
 # Read data
-data_orig <- readRDS(file=file.path(outdir, "2000_2020_gillnet_logbook_data.Rds"))
+data_orig <- readRDS(file.path(outdir, "CDFW_2000_2020_trawl_logbook_data.Rds"))
+table(data_orig$target_spp)
 
 
 # Build data
 ################################################################################
 
-# Summarize catch by set
-data <- data_orig %>%
-  # Filter to trips of interest
-  filter(target_spp=="Halibut" & catch_lb>0) %>%
-  # Summarize catch by set
-  group_by(set_id, set_type, year, date, date_dummy, yday, block_id, block_lat_dd, depth_fa, comm_name) %>%
-  summarize(catch_lb=sum(catch_lb, na.rm=T)) %>%
+# Build data
+data <- data_orig  %>%
+  # Reduce to halibut trips
+  filter(target_spp=="California halibut" & !is.na(catch_lb)) %>%
+  # Summarize by tow
+  group_by(tow_id, tow_year, tow_date, set_lat_dd, set_block_id, block_id_orig, depth_avg_fathoms, species) %>%
+  summarize(catch_lb=sum(catch_lb)) %>%
   ungroup() %>%
-  # Remove sets without any CA halibut
-  group_by(set_id) %>%
-  mutate(halibut_yn="California halibut" %in% comm_name) %>%
+  # Reduce to tows with CA halibut
+  group_by(tow_id) %>%
+  mutate(halibut_yn="California halibut" %in% species) %>%
   ungroup() %>%
   filter(halibut_yn==T) %>%
-  # Compute bycatch ratio
-  group_by(set_id) %>%
-  mutate(halibut_lb=catch_lb[comm_name=="California halibut"],
+  # Calculate bycatch ratio
+  group_by(tow_id) %>%
+  mutate(halibut_lb=catch_lb[species=="California halibut"],
          ratio=catch_lb/halibut_lb) %>%
   ungroup() %>%
-  # Remove halibut catch
-  filter(comm_name!="California halibut")
+  # Rename
+  rename(comm_name=species,
+         date=tow_date,
+         year=tow_year) %>%
+  # Add date dummy
+  mutate(date_dummy=paste("2020", lubridate::month(date), lubridate::day(date), sep="-") %>% lubridate::ymd(.)) %>%
+  # Remove CA halibut
+  filter(comm_name!="California halibut") %>%
+  # Remove outliers
+  filter(depth_avg_fathoms<150)
 
-# Number of sets in dataset
-nsets_tot <- n_distinct(data$set_id)
+# Number of tows in dataset
+ntows_tot <- n_distinct(data$tow_id)
 
 # Determine species order
 stats <- data %>%
   group_by(comm_name) %>%
-  summarize(nsets=n_distinct(set_id),
-            psets=nsets/nsets_tot,
+  summarize(ntows=n_distinct(tow_id),
+            ptows=ntows/ntows_tot,
             ratio_med=median(ratio)) %>%
-  arrange(desc(psets))
+  arrange(desc(ptows))
 
 # Top 20 species
 top20spp <- stats$comm_name[1:20]
 
+
+# Block-level data
+##########################################
+
 # Blocks
-blocks <- wcfish::blocks %>%
-  mutate(block_id=as.character(block_id))
+blocks <- wcfish::blocks
 
 # Data by block
 data_block <- data %>%
-  group_by(comm_name, block_id) %>%
+  group_by(comm_name, set_block_id) %>%
   summarize(ratio_med=median(ratio)) %>%
   ungroup()
 
 # Merge
 data_block_sf <- blocks %>%
-  left_join(data_block, by="block_id")
+  left_join(data_block, by=c("block_id"="set_block_id"))
 
 # USA
 usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
@@ -97,10 +109,10 @@ theme2 <-  theme(axis.text=element_text(size=6),
 
 
 # Plot bycatch ratio boxplots
-g1 <- ggplot(stats, aes(x=psets, y=factor(comm_name, levels=stats$comm_name))) +
+g1 <- ggplot(stats, aes(x=ptows, y=factor(comm_name, levels=stats$comm_name))) +
   geom_bar(stat="identity") +
   # Labels
-  labs(x="Bycatch occurence\n(percent of gillnet sets)", y="", tag="A", title="CDFW gillnet logbooks") +
+  labs(x="Bycatch occurence\n(percent of trawl tows)", y="", tag="A", title="CDFW trawl logbooks") +
   # Axis
   scale_x_continuous(labels=scales::percent) +
   # Theme
@@ -126,8 +138,9 @@ g <- gridExtra::grid.arrange(g1, g2, nrow=1, widths=c(0.55, 0.45))
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_gillnet_logbook_bycatch_ratio_by_species.png"),
+ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_by_species.png"),
        width=6.5, height=6.5, units="in", dpi=600)
+
 
 # Bycatch over time
 #######################################
@@ -161,9 +174,8 @@ g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=year, y=ratio, group=y
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_gillnet_logbook_bycatch_ratio_over_time.png"),
+ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_over_time.png"),
        width=6.5, height=5, units="in", dpi=600)
-
 
 # Bycatch over space
 #######################################
@@ -192,24 +204,24 @@ g <- ggplot(data_block_sf %>% filter(comm_name%in%top20spp), aes(fill=ratio_med)
   geom_sf(data=usa, fill="grey90", color="white", lwd=0.2, inherit.aes = F) +
   geom_sf(data=mexico, fill="grey90", color="white", lwd=0.2, inherit.aes = F) +
   # Labels
-  labs(x="", y="", title="CDFW gillnet logbooks") +
+  labs(x="", y="", title="CDFW trawl logbooks") +
   # Legend
   scale_fill_gradientn(name="Median\nbycatch ratio",
                        colors=RColorBrewer::brewer.pal(9, "YlOrRd"),
                        trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
   # Axis
-  scale_x_continuous(breaks=seq(-120, -116, 2)) +
-  scale_y_continuous(breaks=seq(32, 35, 1)) +
+  scale_x_continuous(breaks=seq(-124, -116, 4)) +
+  scale_y_continuous(breaks=seq(32, 42, 2)) +
   # Crop
-  coord_sf(xlim=c(-121, -117), ylim=c(32, 34.5)) +
+  coord_sf(xlim=c(-125, -116), ylim=c(32, 42)) +
   # Theme
   theme_bw() + theme_map
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_gillnet_logbook_bycatch_ratio_over_space.png"),
-       width=6.5, height=5.5, units="in", dpi=600)
+ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_over_space.png"),
+       width=6.5, height=7.5, units="in", dpi=600)
 
 
 # Bycatch by driver
@@ -229,14 +241,14 @@ theme3 <- theme(axis.text=element_text(size=7),
                 legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Bycatch ratio by depth
-g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=depth_fa, y=ratio)) +
+g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=depth_avg_fathoms, y=ratio)) +
   facet_wrap(~factor(comm_name, levels=top20spp), ncol=5, scales="free_x") +
   geom_smooth(fill="grey80", color="black") +
   geom_point(pch=21, color="grey30", alpha=0.5) +
   # Horizontal line
   geom_hline(yintercept=1, linetype="dotted") +
   # Labels
-  labs(x="Depth (fathoms)", y="Bycatch ratio", title="CDFW gillnet logbooks") +
+  labs(x="Depth (fathoms)", y="Bycatch ratio", title="CDFW trawl logbooks") +
   # Axis
   scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
   # Theme
@@ -244,7 +256,7 @@ g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=depth_fa, y=ratio)) +
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_gillnet_logbook_bycatch_ratio_by_depth.png"),
+ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_by_depth.png"),
        width=6.5, height=5.5, units="in", dpi=600)
 
 
@@ -266,8 +278,9 @@ g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=date_dummy, y=ratio)) 
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_gillnet_logbook_bycatch_ratio_by_date.png"),
+ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_by_date.png"),
        width=6.5, height=5.5, units="in", dpi=600)
+
 
 
 
