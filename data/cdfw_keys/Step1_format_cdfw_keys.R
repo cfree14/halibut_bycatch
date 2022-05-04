@@ -80,13 +80,13 @@ saveRDS(port_key, file=file.path(outdir, "CDFW_port_key.Rds"))
 # Read port key
 gear_key_orig <- read.csv(file.path(indir, "GearCodesExtract.csv"), as.is=T)
 
-
 # Format port key
 gear_key <- gear_key_orig %>%
   # Rename
   janitor::clean_names("snake") %>%
   rename(gear=gear_description,
-         discontinued_date=discontinue_date) %>%
+         discontinued_date=discontinue_date,
+         gear_type=gear_type_chris) %>%
   # Format gear
   mutate(gear=stringr::str_to_title(gear)) %>%
   # Format date
