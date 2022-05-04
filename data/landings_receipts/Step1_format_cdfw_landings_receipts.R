@@ -74,20 +74,40 @@ data2 <- data1 %>%
   # Format species
   mutate(species=species %>% stringr::str_trim(.) %>% gsub("  ", ", ", .)) %>%
   # Format gear
-  mutate(primary_gear=stringr::str_to_sentence(primary_gear),
+  mutate(gear_id=ifelse(is.na(gear_id), 0, gear_id),
+         gear=ifelse(gear_id==0, "Unknown", gear),
          gear=stringr::str_to_sentence(gear)) %>%
+  # Format primary gear
+  # Assume that 75=Invalid and that NA=Unknown
+  mutate(primary_gear_id=ifelse(is.na(primary_gear_id), 0, primary_gear_id),
+         primary_gear_id=ifelse(primary_gear_id==75, -1, primary_gear_id),
+         primary_gear=ifelse(primary_gear_id==0, "Unknown", primary_gear),
+         primary_gear=ifelse(primary_gear_id==-1, "Invalid", primary_gear),
+         primary_gear=stringr::str_to_sentence(primary_gear)) %>%
   # Format port
   mutate(port=stringr::str_to_title(port),
          port=recode(port,
                      "Princeton-Half Moon"="Princeton-Half Moon Bay"),
-         port=ifelse(port_id==0, "Invalid Or Unknown Port", port)) %>%
+         port=case_when(port_id==0 ~ "Unknown",
+                        port_id==-1 ~ "Invalid",
+                        TRUE ~ port)) %>%
   # Format condition
   mutate(condition=stringr::str_to_sentence(condition),
          condition=ifelse(condition_id==0, "Dead", condition)) %>%
   # Format use
-  mutate(use=stringr::str_to_sentence(use)) %>%
+  # Assume that NA=Unknown
+  mutate(use_id=ifelse(is.na(use_id), 0, use_id),
+         use=ifelse(use_id==0, "Unknown", use),
+         use=stringr::str_to_sentence(use)) %>%
   # Arrange
-  select(receipt_id, year, month, date, everything())
+  select(receipt_id, year, month, date,
+         business_id, fisher_id, vessel_id, permit_state, permit_gf,
+         port_id, port, block_id,
+         primary_gear_id, primary_gear, gear_id, gear,
+         species_id, species,
+         condition_id, condition, use_id, use,
+         landings_lb, value_usd, price_usd_lb,
+         everything())
 
 # Inspect
 str(data2)
@@ -100,7 +120,7 @@ range(data2$date)
 port_key <- data2 %>%
   select(port_id, port) %>%
   unique() %>%
-  arrange(port)
+  arrange(port_id)
 anyDuplicated(port_key$port)
 anyDuplicated(port_key$port_id)
 freeR::which_duplicated(port_key$port_id)
@@ -109,7 +129,7 @@ freeR::which_duplicated(port_key$port_id)
 use_key <- data2 %>%
   select(use_id, use) %>%
   unique() %>%
-  arrange(use)
+  arrange(use_id)
 anyDuplicated(use_key$use)
 anyDuplicated(use_key$use_id)
 freeR::which_duplicated(use_key$use_id)
@@ -118,7 +138,7 @@ freeR::which_duplicated(use_key$use_id)
 condition_key <- data2 %>%
   select(condition_id, condition) %>%
   unique() %>%
-  arrange(condition)
+  arrange(condition_id)
 anyDuplicated(condition_key$condition)
 anyDuplicated(condition_key$condition_id)
 freeR::which_duplicated(condition_key$condition_id)
@@ -127,7 +147,7 @@ freeR::which_duplicated(condition_key$condition_id)
 species_key <- data2 %>%
   select(species_id, species) %>%
   unique() %>%
-  arrange(species)
+  arrange(species_id)
 anyDuplicated(species_key$species)
 anyDuplicated(species_key$species_id)
 freeR::which_duplicated(species_key$species_id)
@@ -136,7 +156,7 @@ freeR::which_duplicated(species_key$species_id)
 gear_key <- data2 %>%
   select(gear_id, gear) %>%
   unique() %>%
-  arrange(gear)
+  arrange(gear_id)
 anyDuplicated(gear_key$gear)
 anyDuplicated(gear_key$gear_id)
 freeR::which_duplicated(gear_key$gear_id)
