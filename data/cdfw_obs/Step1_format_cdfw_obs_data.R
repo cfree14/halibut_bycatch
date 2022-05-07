@@ -21,21 +21,8 @@ data_orig2 <- read.csv(file.path(indir, "GNM8389.csv"), as.is=T, na.strings="")
 data_orig3 <- read.csv(file.path(indir, "GNS8389.csv"), as.is=T, na.strings="")
 
 # Read species key
-spp_key <- readRDS("data/cdfw_species/processed/CDFW_species_key.Rds")
-
-
-# Format keys
-################################################################################
-
-# Read port key
-port_key_orig <- read.csv(file.path(indir, "CDFW_port_codes.csv"), as.is=T)
-
-# Format port key
-port_key <- port_key_orig %>%
-  mutate(major_port=stringr::str_to_title(major_port),
-         port=stringr::str_to_title(port))
-
-sort(unique(port_key$major_port))
+spp_key <- readRDS("data/cdfw_keys/processed/CDFW_species_key.Rds")
+port_key <- readRDS("data/cdfw_keys/processed/CDFW_port_key.Rds")
 
 
 # Format data 1
@@ -157,6 +144,31 @@ save(data2, file=file.path(outdir, "CDFW_1983_1989_gillnet_observer_length_comps
 # Format data 3
 ################################################################################
 
+# Convert latitude
+x <- data_orig3$LAT[1]
+conv_lat <- function(x){
+  # Extract degrees
+  deg <- substr(x, 1, 2) %>% as.numeric()
+  # Extract minutes
+  min <- substr(x, 3, nchar(x)) %>% as.numeric()
+  # Export lat
+  lat <- deg+min/60
+  return(lat)
+
+}
+
+# Convert latitude
+x <- data_orig3$LONG[1]
+conv_long <- function(x){
+  # Extract degrees
+  deg <- substr(x, 1, 3) %>% as.numeric()
+  # Extract minutes
+  min <- substr(x, 4, nchar(x)) %>% as.numeric()
+  # Export lat
+  long <- (deg+min/60)*-1
+  return(long)
+}
+
 # Format data
 data3 <- data_orig3 %>%
   # Rename
@@ -168,8 +180,8 @@ data3 <- data_orig3 %>%
          port_depart_code=dport,
          port_landing_code=lport,
          target_spp_code=tspec,
-         lat_loran=lat,
-         long_loran=long,
+         lat_dd_orig=lat,
+         long_dd_orig=long,
          net_orientation=norient,
          environment=environ,
          bottom_depth_fa=bdepth,
@@ -186,6 +198,9 @@ data3 <- data_orig3 %>%
          extender_length_ft=elength) %>%
   # Format date
   mutate(date=lubridate::mdy(date)) %>%
+  # Format lat/long
+  mutate(lat_dd=conv_lat(lat_dd_orig),
+         long_dd=conv_long(long_dd_orig)) %>%
   # Formate complete
   mutate(complete_yn=recode(complete_yn,
                             "1"="yes", "0"="no")) %>%
@@ -209,15 +224,21 @@ data3 <- data_orig3 %>%
                              "2"="multifilament",
                              "3"="combination",
                              "4"="twisted mono")) %>%
+  # Format environment
+  mutate(environment=recode(environment,
+                            "1"="inshore of kelp",
+                            "2"="in kelp",
+                            "3"="offshore of kelp",
+                            "4"="no kelp")) %>%
   # Format target species key
   mutate(target_spp_code=stringr::str_pad(target_spp_code, width=3, pad="0", side="left")) %>%
   # Add species name
   left_join(spp_key %>% select(spp_code_chr, comm_name_orig), by=c("target_spp_code"="spp_code_chr")) %>%
   rename(target_spp_orig=comm_name_orig) %>%
   # Add port names
-  left_join(port_key %>% select(port_id, port), by=c("port_depart_code"="port_id")) %>%
+  left_join(port_key %>% select(port_code, port), by=c("port_depart_code"="port_code")) %>%
   rename(port_depart=port) %>%
-  left_join(port_key %>% select(port_id, port), by=c("port_landing_code"="port_id")) %>%
+  left_join(port_key %>% select(port_code, port), by=c("port_landing_code"="port_code")) %>%
   rename(port_landing=port) %>%
   # Arrange
   select(date:obs_type,
@@ -228,6 +249,19 @@ data3 <- data_orig3 %>%
 # Inspect
 str(data3)
 freeR::complete(data3)
+
+# Check lat/long
+usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
+g <- ggplot(data3, aes(x=long_dd, y=lat_dd, color=port_depart)) +
+  geom_sf(data=usa, fill="grey80", color="white", lwd=0.2, inherit.aes = F) +
+  geom_point() +
+  coord_sf(xlim=c(-117, -121), ylim=c(32, 35)) +
+  # Labels
+  labs(x="", y="") +
+  scale_color_discrete(name="Port of departure") +
+  # Theme
+  theme_bw()
+g
 
 # Export
 save(data3, file=file.path(outdir, "CDFW_1983_1989_gillnet_observer_set_info.Rds"))
