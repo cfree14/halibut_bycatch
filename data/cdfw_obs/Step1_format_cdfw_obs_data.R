@@ -15,254 +15,89 @@ outdir <- "data/cdfw_obs/processed"
 plotdir <- "data/cdfw_obs/figures"
 
 # Read data
-list.files(indir)
-data_orig1 <- read.csv(file.path(indir, "GNC8389.csv"), as.is=T, na.strings="")
-data_orig2 <- read.csv(file.path(indir, "GNM8389.csv"), as.is=T, na.strings="")
-data_orig3 <- read.csv(file.path(indir, "GNS8389.csv"), as.is=T, na.strings="")
+data_orig <- read.csv(file.path(indir, "GNC8389.csv"), as.is=T, na.strings="")
 
 # Read species key
 spp_key <- readRDS("data/cdfw_keys/processed/CDFW_species_key.Rds")
+spp_key2 <- readRDS("data/swfsc_obs/processed/SWFSC_observer_program_spp_key.Rds")
 port_key <- readRDS("data/cdfw_keys/processed/CDFW_port_key.Rds")
 
 
-# Format data 1
+# Format data
 ################################################################################
 
 # Format data
-data1 <- data_orig1 %>%
+data <- data_orig %>%
   # Rename
   janitor::clean_names("snake") %>%
-  rename(fg_id=fgno,
-         set_id=setno,
+  rename(vessel_id=fgno,
+         set_num=setno,
          spp_code_chr=species,
          n_caught=tcat,
          n_discarded_dead=ddead,
          n_discarded_alive=dlive,
          n_damaged=nodam,
          n_kept=nokept,
-         n_measured=nokeptsl,
+         n_kept_sublegal=nokeptsl,
          n_sold=nosold) %>%
   # Format date
   mutate(date=lubridate::ymd(date)) %>%
-  # Convert to numeric
-  mutate(n_discarded_alive=as.numeric(n_discarded_alive),
-         n_damaged=as.numeric(n_damaged),
+  # Format number discarded alive
+  mutate(n_discarded_alive=ifelse(n_discarded_alive %in% c("m", "M"), NA, n_discarded_alive),
+         n_discarded_alive=as.numeric(n_discarded_alive)) %>%
+  # Format number damaged
+  mutate(n_damaged=ifelse(n_damaged %in% c("S", "M"), NA, n_damaged),
+         n_damaged=as.numeric(n_damaged)) %>%
+  # Format number kept
+  mutate(n_kept=ifelse(n_kept %in% c("S"), NA, n_kept),
          n_kept=as.numeric(n_kept)) %>%
-  # Add species name
-  left_join(spp_key %>% select(spp_code_chr, comm_name_orig), by="spp_code_chr") %>%
-  # Arrange
-  select(date, fg_id, set_id, spp_code_chr, comm_name_orig, everything()) %>%
+  # Add species name (fix a few codes first)
+  mutate(spp_code_chr=recode(spp_code_chr,
+                             "PPn"="pPN",
+                             "aV"="aVE")) %>%
+  left_join(spp_key2 %>% select(code, comm_name), by=c("spp_code_chr"="code")) %>%
+  # Fill in missing common name
+  mutate(comm_name=case_when(spp_code_chr=="152" ~ "Spiny dogfish shark",
+                             TRUE ~ comm_name)) %>%
+  # Add set id
+  mutate(set_id=paste(date, vessel_id, set_num, sep="-")) %>%
   # Check data
-  mutate(n_caught_calc=n_discarded_dead+n_discarded_alive+n_kept+n_measured+n_sold, # n_damaged is redundant
+  mutate(n_caught_calc=n_discarded_dead+n_discarded_alive+n_kept+n_kept_sublegal+n_sold, # n_damaged is redundant
          n_check=n_caught-n_caught_calc) %>%
-  select(-c(n_caught_calc, n_check))
+  select(-c(n_caught_calc, n_check)) %>%
+  # Arrange
+  arrange(date, vessel_id, set_num, set_id, comm_name)
+
+
+# Inspect data
+################################################################################
 
 # Inspect
-str(data1)
-freeR::complete(data1)
+str(data)
+freeR::complete(data)
 
 # Data
-range(data1$date)
+range(data$date)
 
 # File links
-sort(unique(data1$m_file_link))
-sort(unique(data1$s_file_link))
+sort(unique(data$m_file_link))
+sort(unique(data$s_file_link))
 
-# Inspect unmatched species
-data1_spp <- data1 %>%
+# Inspect species species
+data_spp <- data %>%
   # Unique species
-  select(spp_code_chr, comm_name_orig) %>%
+  select(spp_code_chr, comm_name) %>%
   unique() %>%
   # Reduce to unmatched species
-  filter(is.na(comm_name_orig)) %>%
+  filter(is.na(comm_name)) %>%
   # Arrange
   arrange(spp_code_chr)
-data1_spp$spp_code_chr
-
-# Export unmatched
-write.csv(data1_spp, file=file.path(outdir, "CDFW_1983_1989_gillnet_observer_data_unmatched_spp.csv"), row.names = F)
-
-# Export
-save(data1, file=file.path(outdir, "CDFW_1983_1989_gillnet_observer_data.Rds"))
+data_spp$spp_code_chr
 
 
-# Format data 2
+# Export data
 ################################################################################
 
-# Format data
-data2 <- data_orig2 %>%
-  # Rename
-  janitor::clean_names("snake") %>%
-  rename(fg_id=fgno,
-         set_id=setno,
-         spp_code_chr=species,
-         fork_length_mm=length,
-         total_length_mm=altlen,
-         disposition=disp) %>%
-  # Format date
-  mutate(date=lubridate::ymd(date)) %>%
-  # Format sex
-  mutate(sex=recode(sex,
-                    "0"="unknown",
-                    "1"="male",
-                    "2"="female")) %>%
-  # Add species name
-  left_join(spp_key %>% select(spp_code_chr, comm_name_orig)) %>%
-  # Arrange
-  select(date, fg_id, set_id, spp_code_chr, comm_name_orig, everything())
-
-
-# Inspect
-str(data2)
-freeR::complete(data2)
-
-# Inspect
-sort(unique(data2$sex))
-sort(unique(data2$mat))
-sort(unique(data2$disp))
-
-# Inspect unmatched species
-data2_spp <- data2 %>%
-  # Unique species
-  select(spp_code_chr, comm_name_orig) %>%
-  unique() %>%
-  # Reduce to unmatched species
-  filter(is.na(comm_name_orig)) %>%
-  # Arrange
-  arrange(spp_code_chr)
-data2_spp$spp_code_chr
-
-# Export unmatched
-write.csv(data2_spp,
-          file=file.path(outdir, "CDFW_1983_1989_gillnet_observer_length_comps_unmatched_spp.csv"),
-          row.names = F)
-
 # Export
-save(data2, file=file.path(outdir, "CDFW_1983_1989_gillnet_observer_length_comps.Rds"))
-
-
-# Format data 3
-################################################################################
-
-# Convert latitude
-x <- data_orig3$LAT[1]
-conv_lat <- function(x){
-  # Extract degrees
-  deg <- substr(x, 1, 2) %>% as.numeric()
-  # Extract minutes
-  min <- substr(x, 3, nchar(x)) %>% as.numeric()
-  # Export lat
-  lat <- deg+min/60
-  return(lat)
-
-}
-
-# Convert latitude
-x <- data_orig3$LONG[1]
-conv_long <- function(x){
-  # Extract degrees
-  deg <- substr(x, 1, 3) %>% as.numeric()
-  # Extract minutes
-  min <- substr(x, 4, nchar(x)) %>% as.numeric()
-  # Export lat
-  long <- (deg+min/60)*-1
-  return(long)
-}
-
-# Format data
-data3 <- data_orig3 %>%
-  # Rename
-  janitor::clean_names("snake") %>%
-  rename(set_id=setno,
-         fg_id=fgno,
-         complete_yn=complete,
-         obs_type=otype,
-         port_depart_code=dport,
-         port_landing_code=lport,
-         target_spp_code=tspec,
-         lat_dd_orig=lat,
-         long_dd_orig=long,
-         net_orientation=norient,
-         environment=environ,
-         bottom_depth_fa=bdepth,
-         time_pull=ptime,
-         duration=setdur,
-         net_type=ntype,
-         net_material=nmat,
-         net_length=nlen,
-         net_depth=ndepth,
-         mesh_size1_in=msize1,
-         mesh_size2_in=msize2,
-         hanging_length_in=hlength,
-         suspender_length_ft=slength,
-         extender_length_ft=elength) %>%
-  # Format date
-  mutate(date=lubridate::mdy(date)) %>%
-  # Format lat/long
-  mutate(lat_dd=conv_lat(lat_dd_orig),
-         long_dd=conv_long(long_dd_orig)) %>%
-  # Formate complete
-  mutate(complete_yn=recode(complete_yn,
-                            "1"="yes", "0"="no")) %>%
-  # Format observation type
-  mutate(obs_type=recode(obs_type,
-                         "1"="prearranged",
-                         "2"="opportune on board",
-                         "3"="opportune not on board",
-                         "4"="opportune at sea",
-                         "5"="prearranged at sea")) %>%
-  # Format net orientation
-  mutate(net_orientation=recode(net_orientation,
-                                "1"="parallel",
-                                "2"="perpendicular",
-                                "3"="diagonal",
-                                "4"="other",
-                                "5"="?")) %>%
-  # Format net material
-  mutate(net_material=recode(net_material,
-                             "1"="monofilament",
-                             "2"="multifilament",
-                             "3"="combination",
-                             "4"="twisted mono")) %>%
-  # Format environment
-  mutate(environment=recode(environment,
-                            "1"="inshore of kelp",
-                            "2"="in kelp",
-                            "3"="offshore of kelp",
-                            "4"="no kelp")) %>%
-  # Format target species key
-  mutate(target_spp_code=stringr::str_pad(target_spp_code, width=3, pad="0", side="left")) %>%
-  # Add species name
-  left_join(spp_key %>% select(spp_code_chr, comm_name_orig), by=c("target_spp_code"="spp_code_chr")) %>%
-  rename(target_spp_orig=comm_name_orig) %>%
-  # Add port names
-  left_join(port_key %>% select(port_code, port), by=c("port_depart_code"="port_code")) %>%
-  rename(port_depart=port) %>%
-  left_join(port_key %>% select(port_code, port), by=c("port_landing_code"="port_code")) %>%
-  rename(port_landing=port) %>%
-  # Arrange
-  select(date:obs_type,
-         port_depart_code, port_depart,
-         port_landing_code, port_landing,
-         target_spp_code, target_spp_orig, everything())
-
-# Inspect
-str(data3)
-freeR::complete(data3)
-
-# Check lat/long
-usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
-g <- ggplot(data3, aes(x=long_dd, y=lat_dd, color=port_depart)) +
-  geom_sf(data=usa, fill="grey80", color="white", lwd=0.2, inherit.aes = F) +
-  geom_point() +
-  coord_sf(xlim=c(-117, -121), ylim=c(32, 35)) +
-  # Labels
-  labs(x="", y="") +
-  scale_color_discrete(name="Port of departure") +
-  # Theme
-  theme_bw()
-g
-
-# Export
-save(data3, file=file.path(outdir, "CDFW_1983_1989_gillnet_observer_set_info.Rds"))
+saveRDS(data, file=file.path(outdir, "CDFW_1983_1989_gillnet_observer_data.Rds"))
 
