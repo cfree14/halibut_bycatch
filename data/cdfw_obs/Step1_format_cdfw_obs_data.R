@@ -66,6 +66,7 @@ data <- data_orig %>%
          n_check=n_caught-n_caught_calc) %>%
   select(-c(n_caught_calc, n_check)) %>%
   # Arrange
+  select(date, vessel_id, set_num, set_id, spp_code_chr, comm_name, everything()) %>%
   arrange(date, vessel_id, set_num, set_id, comm_name)
 
 

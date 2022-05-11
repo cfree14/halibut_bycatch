@@ -222,6 +222,7 @@ str(data3)
 freeR::complete(data3)
 
 # Inspect
+range(data3$date_haul1)
 table(data3$port_depart)
 table(data3$port_return)
 table(data3$haul_temp_device)
@@ -230,6 +231,15 @@ table(data3$haul_pos_code)
 # Coordinates
 range(data3$haul_lat_dd, na.rm=T)
 range(data3$haul_long_dd, na.rm=T)
+
+# Map coordinates
+usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
+g <- ggplot(data3, aes(x=haul_long_dd, y=haul_lat_dd)) +
+  geom_sf(data=usa, fill="grey90", color="white", inherit.aes = F) +
+  geom_point() +
+  coord_sf(xlim=c(-122, -117), ylim=c(32, 36)) +
+  theme_bw()
+g
 
 # Net characteristics
 table(data3$net_type)

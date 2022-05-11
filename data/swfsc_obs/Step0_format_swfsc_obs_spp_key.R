@@ -30,18 +30,18 @@ spp_key <- spp_key_orig %>%
                                "Pipefish Bay"="Pipefish, Bay",
                                "Turbot Hornyhead"="Turbot, Hornyhead",
                                "Halibut, CaliforniaThe main"="Halibut, California",
-                               "Rockfish Yellowtail"="",
-                               "Sturgeon Unidentified"="",
-                               "Hagfish Pacific"="",
-                               "Surfperch Barred"="",
-                               "Surfperch Black"="",
-                               "Surfperch Pile"="",
-                               "Stargazer Smooth"="",
-                               "Halibut Pacific"="",
-                               "Dolphinfish, Mahi-Mahi, Dorado"="",
-                               "Shrimp, Spot, Spot Prawn"="",
-                               "Squid, Eggs"="",
-                               "Porpoise Dall's"="")) %>%
+                               "Rockfish Yellowtail"="Rockfish, Yellowtail",
+                               "Sturgeon Unidentified"="Sturgeon, Unidentified",
+                               "Hagfish Pacific"="Hagfish, Pacific",
+                               "Surfperch Barred"="Surfperch, Barred",
+                               "Surfperch Black"="Surfperch, Black",
+                               "Surfperch Pile"="Surfperch, Pile",
+                               "Stargazer Smooth"="Stargazer, Smooth",
+                               "Halibut Pacific"="Halibut, Pacific",
+                               "Dolphinfish, Mahi-Mahi, Dorado"="Dolphinfish",
+                               "Shrimp, Spot, Spot Prawn"="Shrimp, Spot",
+                               "Squid, Eggs"="Squid eggs",
+                               "Porpoise Dall's"="Porpoise, Dall's")) %>%
   # Make name regular
   mutate(comm_name=wcfish::convert_names(comm_name_orig, to="regular")) %>%
   # Arrange

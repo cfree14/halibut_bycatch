@@ -18,12 +18,12 @@ plotdir <- "data/comm_permits/figures"
 list.files(indir)
 data_orig <- read.csv(file.path(indir, "VesselPermitExtract.CSV"), as.is=T, na.strings = "")
 
+# Read port key
+port_key <- readRDS("data/cdfw_keys/processed/CDFW_port_key.Rds")
+
 
 # Format data
 ################################################################################
-
-# To-do list
-# 1) Complete and harmonize vessel names
 
 # Format data
 data <- data_orig %>%
@@ -46,7 +46,12 @@ data <- data_orig %>%
   # Format county
   mutate(home_port_county=stringr::str_to_title(home_port_county)) %>%
   # Format permit
-  mutate(permit=stringr::str_to_title(permit))
+  mutate(permit=stringr::str_to_title(permit)) %>%
+  # Add home port name
+  left_join(port_key %>% select(port_code, port), by=c("home_port_code"="port_code")) %>%
+  rename(home_port=port) %>%
+  # Arrange
+  select(vessel_id:home_port_code, home_port, everything())
 
 # Inspect
 str(data)
@@ -55,9 +60,16 @@ freeR::complete(data)
 # Inspect
 range(data$permit_issue_date, na.rm=T)
 table(data$permit)
+table(data$home_port_code)
 table(data$home_port_county)
 table(data$permit_issue_office_code)
 table(data$reg_issue_office_code)
+
+# Inspect port key
+port_key_check <- data %>%
+  select(home_port_code, home_port) %>%
+  unique() %>%
+  arrange(home_port_code)
 
 
 # Vessel key
@@ -67,7 +79,6 @@ table(data$reg_issue_office_code)
 # Length, beam, tonnage, horsepower, passengers appears constant through time
 # Home port changes through time
 # Name doesn't appear to be unique
-# Reg
 vessel_key <- data %>%
   group_by(vessel_id, length_ft, beam_ft, horsepower, tonnage, passengers) %>%
   summarize(n=n(),

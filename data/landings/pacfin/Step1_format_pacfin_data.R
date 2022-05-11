@@ -14,7 +14,7 @@ outdir <- "data/landings/pacfin/processed"
 plotdir <- "data/landings/pacfin/figures"
 
 # Read data
-data_orig <- wcfish::pacfin_all6
+data_orig <- wcfish::pacfin_all5
 
 
 # Format data
