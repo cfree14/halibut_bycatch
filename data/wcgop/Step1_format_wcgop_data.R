@@ -137,6 +137,11 @@ table(data1$catch_weight_units)
 # Soak times
 table(data1$soak_time_obs)
 
+# Other
+table(data1$catch_disposition)
+table(data1$gear)
+table(data1$sector)
+
 
 # Format data - pass 2
 ################################################################################

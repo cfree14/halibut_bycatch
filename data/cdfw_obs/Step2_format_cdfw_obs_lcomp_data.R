@@ -69,7 +69,7 @@ freeR::complete(data)
 # Inspect
 sort(unique(data$sex))
 sort(unique(data$maturity))
-sort(unique(data2$disposition))
+sort(unique(data$disposition))
 
 # Inspect unmatched species
 data_spp <- data %>%

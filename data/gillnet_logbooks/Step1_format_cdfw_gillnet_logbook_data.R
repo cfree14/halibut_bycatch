@@ -23,11 +23,7 @@ blocks <- wcfish::blocks
 blocks_df <- blocks %>% sf::st_drop_geometry()
 
 # Read species key
-spp_key <- readRDS("data/cdfw_obs/processed/species_key.Rds") %>%
-  select(-spp_code_chr) %>%
-  rename(spp_code=spp_code_num) %>%
-  mutate(comm_name=wcfish::convert_names(comm_name_orig, to="regular")) %>%
-  select(-comm_name_orig)
+spp_key <- readRDS("data/cdfw_keys/processed/CDFW_species_key.Rds")
 
 # Read vessel key
 vessel_key <- readRDS("data/comm_permits/processed/CDFW_vessel_key.Rds")
@@ -160,7 +156,7 @@ data <- data_orig %>%
                             comm_name_orig=="ROCK CRABS" ~ 801,
                             TRUE ~ spp_code)) %>%
   # Format species
-  left_join(spp_key %>% select(spp_code, comm_name), by="spp_code") %>%
+  left_join(spp_key %>% select(spp_code_num, comm_name), by=c("spp_code"="spp_code_num")) %>%
   # Fill in some common names
   mutate(comm_name=case_when(comm_name_orig=="Crab" & is.na(comm_name) ~ "Crab spp.",
                              comm_name_orig=="DLP-DOLPHINS NEI" & is.na(comm_name) ~ "Dolphin spp.",

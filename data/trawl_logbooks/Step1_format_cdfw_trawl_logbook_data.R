@@ -22,7 +22,10 @@ data_orig <- read.csv(file.path(indir, "MLS_TrawlExtract_03182022.csv"), na.stri
 pacfin_spp_key <- wcfish::pacfin_species
 
 # CDFW species key
-cdfw_spp_key <- readRDS("data/cdfw_species/processed/CDFW_species_key.Rds")
+cdfw_spp_key <- readRDS("data/cdfw_keys/processed/CDFW_species_key.Rds")
+
+# Get blocks
+blocks <- wcfish::blocks
 
 
 # Helper function
@@ -155,8 +158,8 @@ str(data2)
 # Inspect
 range(data2$tow_date)
 table(data2$net_type)
-table(data2$target_strategy)
-table(data2$pacfin_code)
+table(data2$target_spp)
+table(data2$target_spp_code_pacfin)
 table(data2$observed_trip_yn)
 table(data2$efp_trip_yn)
 table(data2$region)
@@ -178,7 +181,6 @@ spp_key_check <- data2 %>%
 freeR::which_duplicated(spp_key_check$species)
 freeR::which_duplicated(spp_key_check$spp_code_cdfw)
 freeR::which_duplicated(spp_key_check$spp_code_pacfin) # PACFIN codes aren't perfect
-
 
 
 # Inspect tow id

@@ -29,7 +29,7 @@ data1 <- data_orig1 %>%
   # Rename
   janitor::clean_names() %>%
   rename(trip_id=observer_trip_number,
-         set_id=set_number,
+         set_num=set_number,
          spp_code=catch_species_code,
          comm_name=species_common_name,
          n_caught=total_catch_count,
@@ -42,6 +42,9 @@ data1 <- data_orig1 %>%
          tag_yn=was_tag_present,
          mammal_damage_yn=was_damaged_by_marine_mammals,
          condition=condition_description) %>%
+  # Format species
+  mutate(spp_code=ifelse(is.na(spp_code), "000", spp_code),
+         comm_name=ifelse(is.na(comm_name), "Unknown Species", comm_name)) %>%
   # Format sex
   mutate(sex=ifelse(sex=="", "Unknown", sex),
          sex=recode(sex,
@@ -62,7 +65,12 @@ data1 <- data_orig1 %>%
   mutate(n_caught_calc=n_kept+n_returned_alive+n_returned_dead+n_returned_unknown,
          n_caught_diff=n_caught-n_caught_calc) %>%
   # Remove b/c pass check
-  select(-c(n_caught_calc, n_caught_diff))
+  select(-c(n_caught_calc, n_caught_diff)) %>%
+  # Build set id
+  mutate(set_id=paste(trip_id, set_num, sep="-")) %>%
+  # Arrange
+  select(trip_id, set_num, set_id, everything()) %>%
+  arrange(trip_id, set_num, set_id, spp_code)
 
 # Inspect
 str(data1)
@@ -80,6 +88,9 @@ spp_key <- data1 %>%
   select(spp_code, comm_name) %>%
   unique() %>%
   arrange(spp_code)
+freeR::which_duplicated(spp_key$spp_code)
+freeR::which_duplicated(spp_key$comm_name)
+
 
 # Export data
 saveRDS(data1, file=file.path(outdir, "SWFSC_set_net_observer_data.Rds"))
