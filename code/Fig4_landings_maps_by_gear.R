@@ -101,7 +101,7 @@ mexico <- rnaturalearth::ne_countries(country="Mexico", returnclass = "sf", scal
 
 # Plot data
 g <- ggplot() +
-  geom_sf(data=data_sf, mapping=aes(fill=landings_prop*100), lwd=0.1, color="grey30") +
+  geom_sf(data=data_sf, mapping=aes(fill=landings_prop*100), lwd=0.1, color=NA) +
   facet_wrap(~gear_type, nrow=1) +
   # Plot Point Arguello
   geom_hline(yintercept = 34.577201, lwd=0.2) +

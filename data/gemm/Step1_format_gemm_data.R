@@ -50,7 +50,9 @@ data <- data_orig %>%
   left_join(sector_key, by="sector") %>%
   # Arrange
   select(sector_type, sector, mgmt_group, groundfish_fmp_yn, species, year, discards_cv,
-         landings_mt, discards_mt, catch_mt, discards_mt_adj, catch_mt_adj, everything())
+         landings_mt, discards_mt, catch_mt, discards_mt_adj, catch_mt_adj, everything()) %>%
+  # Add check
+  mutate(catch_mt_check=catch_mt-(landings_mt+discards_mt))
 
 
 # Confirm that:
