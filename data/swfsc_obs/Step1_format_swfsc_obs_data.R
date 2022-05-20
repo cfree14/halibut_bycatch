@@ -20,6 +20,9 @@ data_orig1 <- read.csv(file.path(indir, "obs_setnet_catch.csv"), as.is=T, na.str
 data_orig2 <- read.csv(file.path(indir, "obs_setnet_measurement.csv"), as.is=T, na.strings="")
 data_orig3 <- read.csv(file.path(indir, "SN_trip_SET_1990_2017.csv"), as.is=T, na.strings="")
 
+# Read species key
+spp_key <- readRDS(file.path(outdir, "SWFSC_observer_program_spp_key.Rds"))
+
 
 # Format data 1
 ################################################################################
@@ -31,7 +34,7 @@ data1 <- data_orig1 %>%
   rename(trip_id=observer_trip_number,
          set_num=set_number,
          spp_code=catch_species_code,
-         comm_name=species_common_name,
+         comm_name_orig=species_common_name,
          n_caught=total_catch_count,
          n_kept=total_kept_count,
          n_returned_alive=returned_alive_count,
@@ -43,8 +46,25 @@ data1 <- data_orig1 %>%
          mammal_damage_yn=was_damaged_by_marine_mammals,
          condition=condition_description) %>%
   # Format species
-  mutate(spp_code=ifelse(is.na(spp_code), "000", spp_code),
-         comm_name=ifelse(is.na(comm_name), "Unknown Species", comm_name)) %>%
+  mutate(spp_code=ifelse(is.na(spp_code), "0", spp_code),
+         spp_code=recode(spp_code,
+                         "000"="0",
+                         "001"="1",
+                         "003"="3",
+                         "019"="19",
+                         "040"="40",
+                         "050"="50",
+                         "051"="51",
+                         "055"="55",
+                         "079"="79",
+                         "080"="80",
+                         "096"="96")) %>%
+  # Add species info
+  left_join(spp_key %>% select(spp_code, comm_name, sci_name), by="spp_code") %>%
+  # Fill in missing species
+  mutate(comm_name_orig=ifelse(spp_code=="152", "Shark, Spiny Dogfish", comm_name_orig),
+         comm_name=ifelse(spp_code=="152", "Spiny dogfish shark", comm_name),
+         sci_name=ifelse(spp_code=="152", "Squalus suckleyi", sci_name)) %>%
   # Format sex
   mutate(sex=ifelse(sex=="", "Unknown", sex),
          sex=recode(sex,
@@ -69,7 +89,9 @@ data1 <- data_orig1 %>%
   # Build set id
   mutate(set_id=paste(trip_id, set_num, sep="-")) %>%
   # Arrange
-  select(trip_id, set_num, set_id, everything()) %>%
+  select(trip_id, set_num, set_id,
+         spp_code, comm_name_orig, comm_name, sci_name,
+         everything()) %>%
   arrange(trip_id, set_num, set_id, spp_code)
 
 # Inspect
@@ -84,7 +106,7 @@ sort(unique(data1$condition))
 sort(unique(data1$sex))
 
 # Species key
-spp_key <- data1 %>%
+spp_key_check <- data1 %>%
   select(spp_code, comm_name) %>%
   unique() %>%
   arrange(spp_code)
@@ -104,12 +126,17 @@ data2 <- data_orig2 %>%
   # Rename
   janitor::clean_names() %>%
   rename(trip_id=observer_trip_number,
-         set_id=set_number,
+         set_num=set_number,
          spp_code=catch_species_code,
          comm_name=species_common_name,
          length_cm=measurement) %>%
+  # Add set id
+  mutate(set_id=paste(trip_id, set_num, sep="-")) %>%
   # Remove useless columns
-  select(-c(measurement_units, condition))
+  select(-c(measurement_units, condition)) %>%
+  # Arrange
+  select(trip_id, set_num, set_id, everything()) %>%
+  arrange(trip_id, set_num, set_id, spp_code)
 
 # Inspect
 str(data2)
@@ -153,7 +180,7 @@ data3 <- data_orig3 %>%
          port_depart=departure_port_name,
          port_return=return_port_name,
          date_haul1=haul_date,
-         set_id=set_number,
+         set_num=set_number,
          soak_hr=soak_time_hrs,
          soak_hr_est=est_soak_time,
          obs_perc=percent_observed,
@@ -226,7 +253,12 @@ data3 <- data_orig3 %>%
          net_material_code=ifelse(net_type=="set net", set_net_net_material_code, float_net_net_material_code),
          net_material_strength_code=ifelse(net_type=="set net", set_net_net_mat_strength_unit_code, float_net_net_mat_strength_unit_code)) %>%
   # Remove useless net columns
-  select(-c(set_net_percent_described:float_net_net_mat_strength_unit_code))
+  select(-c(set_net_percent_described:float_net_net_mat_strength_unit_code)) %>%
+  # Add set id
+  mutate(set_id=paste(trip_id, set_num, sep="-")) %>%
+  # Arrange
+  select(season, trip_id, set_num, set_id, everything()) %>%
+  arrange(season, trip_id, set_num, set_id)
 
 # Inspect
 str(data3)

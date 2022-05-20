@@ -15,252 +15,83 @@ outdir <- "data/swfsc_obs/processed"
 plotdir <- "data/swfsc_obs/figures"
 
 # Read data
-list.files(indir)
-data_orig1 <- read.csv(file.path(indir, "obs_setnet_catch.csv"), as.is=T, na.strings="")
-data_orig2 <- read.csv(file.path(indir, "obs_setnet_measurement.csv"), as.is=T, na.strings="")
-data_orig3 <- read.csv(file.path(indir, "SN_trip_SET_1990_2017.csv"), as.is=T, na.strings="")
+data_obs <- readRDS(file=file.path(outdir, "SWFSC_set_net_observer_data.Rds"))
+data_lengths <- readRDS(file=file.path(outdir, "SWFSC_set_net_observer_length_comps.Rds"))
+data_meta <- readRDS(file=file.path(outdir, "SWFSC_1990_2017_set_net_observer_trips.Rds"))
+
+# Source
+source("code/helper_functions.R")
 
 
-# Format data 1
+# Build data
 ################################################################################
 
-# Format data 1
-data1 <- data_orig1 %>%
-  # Rename
-  janitor::clean_names() %>%
-  rename(trip_id=observer_trip_number,
-         set_num=set_number,
-         spp_code=catch_species_code,
-         comm_name=species_common_name,
-         n_caught=total_catch_count,
-         n_kept=total_kept_count,
-         n_returned_alive=returned_alive_count,
-         n_returned_dead=returned_dead_count,
-         n_returned_unknown=returned_unknown_count,
-         n_damaged_mammals=damage_by_marine_mammals_count,
-         n_damaged=damage_total_count,
-         tag_yn=was_tag_present,
-         mammal_damage_yn=was_damaged_by_marine_mammals,
-         condition=condition_description) %>%
-  # Format species
-  mutate(spp_code=ifelse(is.na(spp_code), "000", spp_code),
-         comm_name=ifelse(is.na(comm_name), "Unknown Species", comm_name)) %>%
-  # Format sex
-  mutate(sex=ifelse(sex=="", "Unknown", sex),
-         sex=recode(sex,
-                    "U"="Unknown",
-                    "M"="Male",
-                    "F"="Female")) %>%
-  # Format condition
-  mutate(condition=ifelse(condition=="", "Unknown", condition)) %>%
-  # Format tag
-  mutate(tag_yn=recode(tag_yn,
-                       "Y"="yes",
-                       "N"="no")) %>%
-  # Format marine mammal damage?
-  mutate(mammal_damage_yn=recode(mammal_damage_yn,
-                       "Y"="yes",
-                       "N"="no")) %>%
-  # Check totals
-  mutate(n_caught_calc=n_kept+n_returned_alive+n_returned_dead+n_returned_unknown,
-         n_caught_diff=n_caught-n_caught_calc) %>%
-  # Remove b/c pass check
-  select(-c(n_caught_calc, n_caught_diff)) %>%
-  # Build set id
-  mutate(set_id=paste(trip_id, set_num, sep="-")) %>%
-  # Arrange
-  select(trip_id, set_num, set_id, everything()) %>%
-  arrange(trip_id, set_num, set_id, spp_code)
-
-# Inspect
-str(data1)
-freeR::complete(data1)
-
-# Inspect
-sort(unique(data1$tag_yn))
-sort(unique(data1$mammal_damage_yn))
-sort(unique(data1$condition_code))
-sort(unique(data1$condition))
-sort(unique(data1$sex))
-
-# Species key
-spp_key <- data1 %>%
-  select(spp_code, comm_name) %>%
-  unique() %>%
-  arrange(spp_code)
-freeR::which_duplicated(spp_key$spp_code)
-freeR::which_duplicated(spp_key$comm_name)
-
-
-# Export data
-saveRDS(data1, file=file.path(outdir, "SWFSC_set_net_observer_data.Rds"))
-
-
-# Format data 2
-################################################################################
-
-# Format data 2
-data2 <- data_orig2 %>%
-  # Rename
-  janitor::clean_names() %>%
-  rename(trip_id=observer_trip_number,
-         set_id=set_number,
-         spp_code=catch_species_code,
-         comm_name=species_common_name,
-         length_cm=measurement) %>%
-  # Remove useless columns
-  select(-c(measurement_units, condition))
-
-# Inspect
-str(data2)
-freeR::complete(data2)
-
-# Inspect columns
-# sort(unique(data2$condition)) ## ALWAYS EMPTY
-# sort(unique(data2$measurement_units)) ## EMPTY on "cm"
-sort(unique(data2$disposition))
-
-# Inspect species key
-spp_key <- data2 %>%
-  select(spp_code, comm_name) %>%
-  unique()
-
-# Plot lengths
-# g <- ggplot(data2, aes(x=length_cm)) +
-#   facet_wrap(~comm_name, ncol=8, scales = "free") +
-#   geom_density() +
-#   # Labels
-#   labs(x="Length (cm)", y="Density") +
-#   # Theme
-#   theme_bw()
-# g
-
-# Export data
-saveRDS(data2, file=file.path(outdir, "SWFSC_set_net_observer_length_comps.Rds"))
-
-
-# Format data 3
-################################################################################
-
-# Format data 3
-data3 <- data_orig3 %>%
-  # Rename
-  janitor::clean_names() %>%
-  rename(trip_id=observer_trip_number,
-         vessel=vessel_names,
-         vessel_plate=vessel_plates,
-         vessel_permit=vessel_permits,
-         port_depart=departure_port_name,
-         port_return=return_port_name,
-         date_haul1=haul_date,
-         set_id=set_number,
-         soak_hr=soak_time_hrs,
-         soak_hr_est=est_soak_time,
-         obs_perc=percent_observed,
-         target1_spp_code=primary_target_species_code,
-         target1_spp=primary_target_species_name,
-         target2_spp_code=secondary_target_species_code,
-         target2_spp=secondary_target_species_name,
-         date_haul2=begin_haul_date_time,
-         haul_temp_device=begin_haul_temp_device,
-         haul_pos_code=begin_haul_position_code,
-         haul_lat_dd=begin_haul_latitude,
-         haul_long_dd=begin_haul_longitude,
-         haul_depth_fa=begin_haul_depth,
-         haul_sst_f=begin_haul_surface_temp,
-         haul_beauf=begin_haul_beaufort_number) %>%
-  # Format ports
-  mutate(port_depart=stringr::str_to_title(port_depart),
-         port_return=stringr::str_to_title(port_return)) %>%
-  # Format dates
-  mutate(date_haul1=lubridate::dmy(date_haul1),
-         date_haul2=lubridate::dmy(date_haul2)) %>%
-  # Label net type
-  rowwise() %>%
-  mutate(sn_vals_n=sum(!is.na(set_net_percent_described),
-                       !is.na(set_net_hanging_length_inches),
-                       !is.na(set_net_mesh_size_inches),
-                       !is.na(set_net_suspender_length_inches),
-                       !is.na(set_net_extender_length_feet),
-                       !is.na(set_net_percent_slack),
-                       !is.na(set_net_number_of_meshes_hanging),
-                       !is.na(set_net_material_strength_lbs),
-                       !is.na(set_net_mesh_panel_length_fathoms),
-                       !is.na(set_net_net_depth_in_mesh_number),
-                       !is.na(set_net_net_color_code),
-                       !is.na(set_net_net_hanging_line_mat_code),
-                       !is.na(set_net_net_material_code),
-                       !is.na(set_net_net_mat_strength_unit_code)),
-         fn_vals_n=sum(!is.na(float_net_percent_described),
-                       !is.na(float_net_hanging_length_inches),
-                       !is.na(float_net_mesh_size_inches),
-                       !is.na(float_net_suspender_length_inches),
-                       !is.na(float_net_extender_length_feet),
-                       !is.na(float_net_percent_slack),
-                       !is.na(float_net_number_of_meshes_hanging),
-                       !is.na(float_net_material_strength_lbs),
-                       !is.na(float_net_mesh_panel_length_fathoms),
-                       !is.na(float_net_net_depth_in_mesh_number),
-                       !is.na(float_net_net_color_code),
-                       !is.na(float_net_net_hanging_line_mat_code),
-                       !is.na(float_net_net_material_code),
-                       !is.na(float_net_net_mat_strength_unit_code))) %>%
+# Build data
+data <- data_obs %>%
+  # Add set meta data
+  left_join(data_meta %>% select(set_id, target1_spp, date_haul1, haul_lat_dd, haul_long_dd, haul_depth_fa), by="set_id") %>%
+  rename(lat_dd=haul_lat_dd, long_dd=haul_long_dd, depth_fa=haul_depth_fa, date=date_haul1) %>%
+  # Reduce to sets targeting CA halibut
+  filter(target1_spp=="Halibut, California") %>%
+  # Add year
+  mutate(year=lubridate::year(date),
+         month=lubridate::month(date),
+         yday=lubridate::yday(date)) %>%
+  # Record halibut catch and reduce to sets with halibut
+  group_by(set_id) %>%
+  mutate(halibut_yn="California halibut" %in% comm_name) %>%
+  filter(halibut_yn==T) %>%
   ungroup() %>%
-  mutate(net_type=ifelse(fn_vals_n>0 & sn_vals_n>0, "both",
-                         ifelse(fn_vals_n==0 & sn_vals_n>0, "set net",
-                                ifelse(sn_vals_n==0 & fn_vals_n>0, "float net",
-                                       ifelse(sn_vals_n==0 & fn_vals_n==0, "unknown", "other"))))) %>%
-  # Recode net stuff
-  mutate(perc_obs=ifelse(net_type=="set net", set_net_percent_described, float_net_percent_described),
-         net_hang_length_in=ifelse(net_type=="set net", set_net_hanging_length_inches, float_net_hanging_length_inches),
-         net_mesh_size_in=ifelse(net_type=="set net", set_net_mesh_size_inches, float_net_mesh_size_inches),
-         net_suspender_length_in=ifelse(net_type=="set net", set_net_suspender_length_inches, float_net_suspender_length_inches),
-         net_extender_length_in=ifelse(net_type=="set net", set_net_extender_length_feet, float_net_extender_length_feet),
-         net_perc_slack=ifelse(net_type=="set net", set_net_percent_slack, float_net_percent_slack),
-         net_n_meshes_hang=ifelse(net_type=="set net", set_net_number_of_meshes_hanging, float_net_number_of_meshes_hanging),
-         net_material_strength_lbs=ifelse(net_type=="set net", set_net_material_strength_lbs, float_net_material_strength_lbs),
-         net_mesh_panel_length_fathoms=ifelse(net_type=="set net", set_net_mesh_panel_length_fathoms, float_net_mesh_panel_length_fathoms),
-         net_depth_in_mesh_n=ifelse(net_type=="set net", set_net_net_depth_in_mesh_number, float_net_net_depth_in_mesh_number),
-         net_color_code=ifelse(net_type=="set net", set_net_net_color_code, float_net_net_color_code),
-         net_hang_line_material_code=ifelse(net_type=="set net", set_net_net_hanging_line_mat_code, float_net_net_hanging_line_mat_code),
-         net_material_code=ifelse(net_type=="set net", set_net_net_material_code, float_net_net_material_code),
-         net_material_strength_code=ifelse(net_type=="set net", set_net_net_mat_strength_unit_code, float_net_net_mat_strength_unit_code)) %>%
-  # Remove useless net columns
-  select(-c(set_net_percent_described:float_net_net_mat_strength_unit_code))
+  select(-halibut_yn) %>%
+  # Calculate bycatch ratios
+  group_by(set_id) %>%
+  mutate(halibut_n=n_caught[comm_name=="California halibut"],
+         ratio=n_caught/halibut_n) %>%
+  ungroup() %>%
+  # Remove halibut
+  filter(comm_name!="California halibut") %>%
+  # Add date dummy
+  mutate(date_dummy=paste("2020", lubridate::month(date), lubridate::day(date), sep="-") %>% lubridate::ymd(.))
+
 
 # Inspect
-str(data3)
-freeR::complete(data3)
+str(data)
+freeR::complete(data)
 
-# Inspect
-range(data3$date_haul1)
-table(data3$port_depart)
-table(data3$port_return)
-table(data3$haul_temp_device)
-table(data3$haul_pos_code)
 
-# Coordinates
-range(data3$haul_lat_dd, na.rm=T)
-range(data3$haul_long_dd, na.rm=T)
+# Build statistics
+################################################################################
 
-# Map coordinates
-usa <- rnaturalearth::ne_states(country="United States of America", returnclass = "sf")
-g <- ggplot(data3, aes(x=haul_long_dd, y=haul_lat_dd)) +
-  geom_sf(data=usa, fill="grey90", color="white", inherit.aes = F) +
-  geom_point() +
-  coord_sf(xlim=c(-122, -117), ylim=c(32, 36)) +
-  theme_bw()
+# Number of sets
+nsets_tot <- n_distinct(data$set_id)
+
+# Build stats
+stats <- data %>%
+  group_by(comm_name) %>%
+  summarize(nsets=n_distinct(set_id),
+            psets=nsets/nsets_tot) %>%
+  ungroup() %>%
+  arrange(desc(psets))
+
+# Top 20 species
+top20spp <- stats$comm_name[1:20]
+
+
+# Plot data
+################################################################################
+
+# By species
+g <- plot_bycatch_spp(stats=stats, plot_title="SWFSC gillnet observer data")
+ggsave(g, filename=file.path(plotdir, "FigX_swfc_gillnet_obs_bycatch_ratio_by_species.png"),
+       width=6.5, height=10.5, units="in", dpi=600)
+
+# By species over time
+g <- plot_bycatch_spp_over_time(stats=stats, top20spp=top20spp, years=seq(1990,2020, 5),
+                                plot_title="SWFSC gillnet observer data")
 g
 
-# Net characteristics
-table(data3$net_type)
-table(data3$net_color_code) # always empty
-table(data3$net_material_code)
-table(data3$net_hang_line_material_code)
-table(data3$net_material_strength_code)
 
-# Export data
-saveRDS(data3, file=file.path(outdir, "SWFSC_1990_2017_set_net_observer_trips.Rds"))
+
 
 
 

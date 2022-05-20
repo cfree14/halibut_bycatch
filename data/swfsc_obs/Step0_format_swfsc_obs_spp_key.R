@@ -22,6 +22,8 @@ spp_key_orig <- read.csv(file.path(indir, "SWFSC_observer_program_species_codes.
 
 # Format data
 spp_key <- spp_key_orig %>%
+  # Rename
+  rename(spp_code=code) %>%
   # Format category
   mutate(category=stringr::str_to_sentence(category)) %>%
   # Fix a few names
@@ -45,7 +47,7 @@ spp_key <- spp_key_orig %>%
   # Make name regular
   mutate(comm_name=wcfish::convert_names(comm_name_orig, to="regular")) %>%
   # Arrange
-  select(category, code, comm_name_orig, comm_name, sci_name, everything())
+  select(category, spp_code, comm_name_orig, comm_name, sci_name, everything())
 
 # Inspect
 freeR::complete(spp_key)
