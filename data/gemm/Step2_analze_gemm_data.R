@@ -216,7 +216,10 @@ data3 <- data_orig %>%
   # Remove zeroes
   filter(ratio!=0) %>%
   # Remove halibut (and kelp)
-  filter(species!="California Halibut" & species!="Kelp")
+  filter(species!="California Halibut" & species!="Kelp") %>%
+  # Format species
+  mutate(species=stringr::str_to_sentence(species),
+         species=gsub(" unid", "", species))
 
 # Order species
 data3_order <- data3 %>%
@@ -234,7 +237,7 @@ g <- ggplot(data3 %>% filter(species %in% data3_order$species),
   # Reference line
   geom_vline(xintercept = 1) +
   # Labels
-  labs(x="Bycatch ratio\n(bycatch / retained halibut", y="", title="GEMM OA CA Halibut bycatch ratios") +
+  labs(x="Bycatch ratio\n(bycatch / retained halibut)", y="", title="GEMM OA CA Halibut bycatch ratios") +
   # Axis
   scale_x_continuous(trans="log10",
                      breaks=c(0.00001, 0.0001, 0.001, 0.01, 0.1, 1),
@@ -258,6 +261,9 @@ data4 <- data3 %>%
 # Plot data
 g <- ggplot(data4, aes(x=year, y=ratio)) +
   facet_wrap(~factor(species, levels=data3_order$species[1:20]), ncol=5, scale="free_y") +
+  # Reference line
+  geom_hline(yintercept = 1, color="grey50", linetype="dotted") +
+  # Line
   geom_line() +
   # Labels
   labs(x="", y="Bycatch ratio\n(all bycatch / retained halibut catch)") +
