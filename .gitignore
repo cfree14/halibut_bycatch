@@ -3,6 +3,9 @@
 .RData
 .Ruserdata
 
+# MacOS
+.DS_Store
+
 # Folders
 admin
 drafts
