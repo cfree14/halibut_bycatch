@@ -3,6 +3,9 @@
 # Clear workspace
 rm(list = ls())
 
+# Turn off scientific notation
+options(scipen=999)
+
 # Setup
 ################################################################################
 
@@ -50,38 +53,40 @@ data <- data_orig %>%
   left_join(sector_key, by="sector") %>%
   # Arrange
   select(sector_type, sector, mgmt_group, groundfish_fmp_yn, species, year, discards_cv,
-         landings_mt, discards_mt, catch_mt, discards_mt_adj, catch_mt_adj, everything()) %>%
-  # Add check
-  mutate(catch_mt_check=catch_mt-(landings_mt+discards_mt))
+         landings_mt, discards_mt, catch_mt, discards_mt_adj, catch_mt_adj, everything())
 
-
-# Confirm that:
-# catch = landings + discards
-sum(data$catch_mt != (data$landings_mt + data$discards_mt))
-
-# Confirm that:
-# catch = landings + discards
-sum(abs(data$catch_mt_adj -  (data$landings_mt + data$discards_mt_adj)) > 1)
+# Build your own version
+data1 <- data %>%
+  # Rename discards (total) and discards (dead)
+  rename(discards_mt_tot=discards_mt,
+         discards_mt_dead=discards_mt_adj,
+         mortality_mt=catch_mt_adj) %>%
+  # If total=0 but dead>0, set total to dead
+  mutate(discards_mt_tot=ifelse(discards_mt_tot==0, discards_mt_dead, discards_mt_tot)) %>%
+  # Calculate live discards
+  mutate(discards_mt_live=discards_mt_tot-discards_mt_dead) %>%
+  # Simplify
+  select(sector_type:discards_cv, landings_mt, discards_mt_tot, discards_mt_dead, discards_mt_live, catch_mt, mortality_mt)
 
 # Inspect species
-spp_key <- data %>%
+spp_key <- data1 %>%
   group_by(species) %>%
   summarize(ntypes=n_distinct(groundfish_fmp_yn),
             types=paste(sort(unique(groundfish_fmp_yn)), collapse=", "))
 
 # Sector group
-sector_key <- data %>%
+sector_key <- data1 %>%
   group_by(sector) %>%
   summarize(n=n())
 
 # Inspect data
-str(data)
-freeR::complete(data)
-range(data$year)
-table(data$sector) # LE = limited entry, OA = open access, CS = catch shares, DTL = daily trip limit, EM = electronic monitoring
-table(data$mgmt_group)
-table(data$groundfish_fmp_yn)
-table(data$species)
+str(data1)
+freeR::complete(data1)
+range(data1$year)
+table(data1$sector) # LE = limited entry, OA = open access, CS = catch shares, DTL = daily trip limit, EM = electronic monitoring
+table(data1$mgmt_group)
+table(data1$groundfish_fmp_yn)
+table(data1$species)
 
 
 # Build species key
@@ -95,5 +100,5 @@ write.csv(spp_key, file=file.path(outdir, "species_key.csv"), row.names = F)
 ################################################################################
 
 # Export
-saveRDS(data, file=file.path(outdir, "GEMM_2002_2020_data.Rds"))
+saveRDS(data1, file=file.path(outdir, "GEMM_2002_2020_data.Rds"))
 

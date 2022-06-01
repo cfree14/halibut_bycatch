@@ -31,6 +31,7 @@ vessel_key <- readRDS("data/comm_permits/processed/CDFW_vessel_key.Rds")
 # Meta-data
 # https://www.fisheries.noaa.gov/inport/item/20833
 
+table(data_orig$MESH_SIZE)
 
 # Format data
 ################################################################################

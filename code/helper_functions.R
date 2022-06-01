@@ -1,5 +1,18 @@
 
-plot_bycatch_spp <- function(stats, plot_title){
+
+# Plot bycatch by species
+# Stats: comm_name, psets,
+# data <- data3; plot_title <- "CDFW landings receipts: northern small mesh gillnets"
+plot_bycatch_spp <- function(data, plot_title){
+
+  # Compute p(occurence)
+  nsets_tot <- n_distinct(data$set_id)
+  stats <- data %>%
+    group_by(comm_name) %>%
+      summarize(nsets=n_distinct(set_id),
+                psets=nsets/nsets_tot,
+                ratio_med=median(ratio)) %>%
+      arrange(desc(psets))
 
   # Theme
   theme1 <-  theme(axis.text=element_text(size=5),
@@ -58,7 +71,21 @@ plot_bycatch_spp <- function(stats, plot_title){
 
 }
 
-plot_bycatch_spp_over_time <- function(stats, top20spp, years, plot_title){
+
+
+plot_bycatch_spp_over_time <- function(data, plot_title){
+
+  # Compute p(occurence)
+  nsets_tot <- n_distinct(data$set_id)
+  stats <- data %>%
+    group_by(comm_name) %>%
+    summarize(nsets=n_distinct(set_id),
+              psets=nsets/nsets_tot,
+              ratio_med=median(ratio)) %>%
+    arrange(desc(psets))
+
+  # Identify top-20 species
+  top20spp <- stats$comm_name[1:20]
 
   # Theme
   theme2 <- theme(axis.text=element_text(size=7),
@@ -82,11 +109,13 @@ plot_bycatch_spp_over_time <- function(stats, top20spp, years, plot_title){
     # Labels
     labs(y="Bycatch ratio\n(bycatch / halibut catch)", x="Year", title=plot_title) +
     # Axis
-    scale_x_continuous(breaks=years) +
     scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
     # Theme
     theme_bw() + theme2 +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
   g
+
+  # Return plot
+  return(g)
 
 }

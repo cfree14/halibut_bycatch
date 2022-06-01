@@ -97,6 +97,12 @@ vessel_key_out <- vessel_key %>%
   rename(vessel_names=names) %>%
   select(vessel_id, vessel_names, n_names, length_ft:passengers)
 
+# Permit types
+permit_key <- data %>%
+  select(permit) %>%
+  unique() %>%
+  arrange(permit)
+
 
 # Export data
 ################################################################################
@@ -104,6 +110,7 @@ vessel_key_out <- vessel_key %>%
 # Export
 saveRDS(data, file=file.path(outdir, "CDFW_2000_2021_permit_data.Rds"))
 saveRDS(vessel_key_out, file=file.path(outdir, "CDFW_vessel_key.Rds"))
+write.csv(permit_key, file=file.path(outdir, "CDFW_permit_types.csv"), row.names=F)
 
 
 
