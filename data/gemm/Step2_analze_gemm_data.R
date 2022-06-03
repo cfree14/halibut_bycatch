@@ -25,6 +25,11 @@ data_orig <- readRDS(file=file.path(outdir, "GEMM_2002_2020_data.Rds"))
 # Halibut by sector
 ################################################################################
 
+# Stats for manuscript
+n_distinct(data_orig$sector)
+n_distinct(data_orig$species)
+
+
 # CA halibut catch/discards by sector
 data1 <- data_orig %>%
   # Reduce to CA halibut

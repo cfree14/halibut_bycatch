@@ -32,6 +32,14 @@ spp_key <- spp_key_orig %>%
          sci_name=scientific_name) %>%
   # Regularize common name
   mutate(comm_name=wcfish::convert_names(comm_name_orig, to="regular")) %>%
+  # Format a fw
+  mutate(comm_name=recode(comm_name,
+                          "Dolphin (fish)"="Dolphinfish",
+                          "Black tuna skipjack"="Black skipjack tuna",
+                          "Wolf (wolf-eel) eel"="Wolf-eel",
+                          "Spotted cusk- eel"="Spotted cusk-eel",
+                          "Pacific ocean perch rockfish"="Pacific ocean perch"
+                        ))
   # Arrange
   select(spp_code_num, spp_code_chr, pacfin_code,
          comm_name_orig, comm_name, sci_name, everything())
