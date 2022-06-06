@@ -159,7 +159,7 @@ g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=year, y=ratio, group=y
   # Reference line
   geom_hline(yintercept=1) +
   # Labels
-  labs(x="Bycatch ratio", y="Year", title="CDFW gillnet logbooks") +
+  labs(x="Year", y="Bycatch ratio", title="CDFW gillnet logbooks") +
   # Axis
   scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
   # Theme

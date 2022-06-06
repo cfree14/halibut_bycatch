@@ -45,9 +45,11 @@ data <- data_obs %>%
   select(-halibut_yn) %>%
   # Calculate bycatch ratios
   group_by(set_id) %>%
-  mutate(halibut_n=n_caught[comm_name=="California halibut"],
-         ratio=n_caught/halibut_n) %>%
+  mutate(halibut_n=n_kept[comm_name=="California halibut"],
+         ratio=n_kept/halibut_n) %>%
   ungroup() %>%
+  # Filter to useable surveys
+  filter(halibut_n>0 & ratio>0) %>%
   # Remove halibut
   filter(comm_name!="California halibut") %>%
   # Add date dummy
@@ -77,18 +79,154 @@ stats <- data %>%
 top20spp <- stats$comm_name[1:20]
 
 
-# Plot data
+
+# Plot data - bycatch species
 ################################################################################
 
-# By species
-g <- plot_bycatch_spp(stats=stats, plot_title="SWFSC gillnet observer data")
-ggsave(g, filename=file.path(plotdir, "FigX_swfc_gillnet_obs_bycatch_ratio_by_species.png"),
-       width=6.5, height=10.5, units="in", dpi=600)
+# Theme
+theme1 <-  theme(axis.text=element_text(size=5),
+                 axis.title=element_text(size=7),
+                 axis.title.y=element_blank(),
+                 plot.title=element_text(size=8),
+                 plot.tag=element_text(size=8),
+                 # Gridlines
+                 panel.grid.major.x = element_blank(),
+                 panel.grid.minor.x = element_blank(),
+                 panel.background = element_blank(),
+                 axis.line = element_line(colour = "black"),
+                 # Legend
+                 legend.background = element_rect(fill=alpha('blue', 0)))
 
-# By species over time
-g <- plot_bycatch_spp_over_time(stats=stats, top20spp=top20spp, years=seq(1990,2020, 5),
-                                plot_title="SWFSC gillnet observer data")
+# Plot data
+g1 <- ggplot(stats, aes(y=factor(comm_name, levels=comm_name), x=psets)) +
+  # Boxplots
+  geom_bar(stat="identity") +
+  # Labels
+  labs(x="Bycatch occurence\n(percent of gillnet sets)", y="", tag="A", title="SWFSC gillnet observer data") +
+  # Axis
+  scale_x_continuous(labels=scales::percent) +
+  # Theme
+  theme_bw() + theme1
+g1
+
+# Plot data
+g2 <- ggplot(data, aes(y=factor(comm_name, levels=stats$comm_name), x=ratio)) +
+  # Boxplots
+  geom_boxplot(fill="grey90", lwd=0.2, outlier.size = 0.3) +
+  # Reference line
+  geom_vline(xintercept = 1) +
+  # Labels
+  labs(x="Bycatch ratio\n(bycatch / halibut catch)", y="", tag="B", title="  ") +
+  # Axis
+  scale_x_continuous(trans="log10",
+                     breaks=c(0.1, 1, 10, 100),
+                     labels=c("0.1", "1", "10", "100")) +
+  # Theme
+  theme_bw() + theme1 +
+  theme(axis.text.y=element_blank())
+g2
+
+# Merge plots
+g <- gridExtra::grid.arrange(g1, g2, nrow=1, widths=c(0.55, 0.45))
 g
+
+# Export plot
+ggsave(g, filename=file.path(plotdir, "FigX_swfsc_gillnet_obs_bycatch_ratio_by_species.png"),
+       width=6.5, height=8.5, units="in", dpi=600)
+
+
+
+# Plot data - bycatch over time
+################################################################################
+
+# Theme
+theme2 <- theme(axis.text=element_text(size=7),
+                axis.title=element_text(size=8),
+                strip.text=element_text(size=7),
+                plot.title=element_text(size=8),
+                # Gridlines
+                panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank(),
+                panel.background = element_blank(),
+                axis.line = element_line(colour = "black"),
+                # Legend
+                legend.background = element_rect(fill=alpha('blue', 0)))
+
+# Plot ratio over time
+g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=year, y=ratio, group=year)) +
+  facet_wrap(~factor(comm_name, levels=top20spp), ncol=5) +
+  geom_boxplot(lwd=0.3, outlier.size = 0.5, color="grey40", fill="grey90") +
+  # Reference line
+  geom_hline(yintercept=1) +
+  # Labels
+  labs(y="Bycatch ratio\n(bycatch / halibut catch)", x="Year", title="SWFSC gillnet observer data") +
+  # Axis
+  scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
+  # Theme
+  theme_bw() + theme2 +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+g
+
+# Export plot
+ggsave(g, filename=file.path(plotdir, "FigX_swfsc_gillnet_obs_bycatch_ratio_over_time.png"),
+       width=6.5, height=5, units="in", dpi=600)
+
+# Plot data - bycatch by driver
+################################################################################
+
+# Theme
+theme3 <- theme(axis.text=element_text(size=7),
+                axis.title=element_text(size=8),
+                strip.text=element_text(size=7),
+                plot.title = element_text(size=8),
+                # Gridlines
+                panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank(),
+                panel.background = element_blank(),
+                axis.line = element_line(colour = "black"),
+                # Legend
+                legend.background = element_rect(fill=alpha('blue', 0)))
+
+# Bycatch ratio by depth
+g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=depth_fa, y=ratio)) +
+  facet_wrap(~factor(comm_name, levels=top20spp), ncol=5, scales="free_x") +
+  geom_point(pch=21, color="grey60", alpha=0.5, size=0.7) +
+  geom_smooth(fill="grey30", color="black", alpha=0.7, lwd=0.5) +
+  # Horizontal line
+  geom_hline(yintercept=1, linetype="dotted") +
+  # Labels
+  labs(x="Depth (fathoms)", y="Bycatch ratio\n(bycatch / halibut catch)", title="SWFSC gillnet observer data") +
+  # Axis
+  scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
+  # Theme
+  theme_bw() + theme3
+g
+
+# Export plot
+ggsave(g, filename=file.path(plotdir, "FigX_swfsc_gillnet_obs_bycatch_ratio_by_depth.png"),
+       width=6.5, height=5.5, units="in", dpi=600)
+
+
+# Bycatch ratio by day of year
+g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=date_dummy, y=ratio)) +
+  facet_wrap(~factor(comm_name, levels=top20spp), ncol=5) +
+  geom_point(pch=21, color="grey60", alpha=0.5, size=0.7) +
+  geom_smooth(fill="grey30", color="black", alpha=0.7, lwd=0.5) +
+  # Horizontal line
+  geom_hline(yintercept=1, linetype="dotted") +
+  # Labels
+  labs(x="Day of year", y="Bycatch ratio\n(bycatch / halibut catch)", title="SWFSC gillnet observer data") +
+  # Axis
+  scale_x_date(date_breaks = "2 months", date_labels =  "%b") +
+  scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
+  # Theme
+  theme_bw() + theme3 +
+  theme(axis.text.x=element_text(size=6))
+g
+
+# Export plot
+ggsave(g, filename=file.path(plotdir, "FigX_swfsc_gillnet_obs_bycatch_ratio_by_date.png"),
+       width=6.5, height=5.5, units="in", dpi=600)
 
 
 

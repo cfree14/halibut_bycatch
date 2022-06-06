@@ -29,7 +29,7 @@ data <- data_orig %>%
   # Add set meta data
   left_join(metadata %>% select(set_id, lat_dd, long_dd, bottom_depth_fa, net_orientation, net_type, target_spp), by="set_id") %>%
   # Reduce to sets targeting CA halibut
-  filter(target_spp=="California halibut") %>%
+  filter(target_spp=="California halibut" & n_kept >0) %>%
   # Add year
   mutate(year=lubridate::year(date),
          month=lubridate::month(date),
@@ -40,7 +40,7 @@ data <- data_orig %>%
          vessel_id, set_num, set_id,
          net_type, net_orientation, bottom_depth_fa, lat_dd, long_dd,
          spp_code_chr, comm_name) %>%
-  summarize(catch_n=sum(n_caught, na.rm=T)) %>%
+  summarize(landings_n=sum(n_kept, na.rm=T)) %>%
   ungroup() %>%
   # Halibut bycatch
   group_by(set_id) %>%
@@ -50,9 +50,10 @@ data <- data_orig %>%
   select(-halibut_yn) %>%
   # Calculate bycatch ratios
   group_by(set_id) %>%
-  mutate(halibut_n=catch_n[comm_name=="California halibut"],
-         ratio=catch_n/halibut_n) %>%
+  mutate(halibut_n=landings_n[comm_name=="California halibut"],
+         ratio=landings_n/halibut_n) %>%
   ungroup() %>%
+  filter(halibut_n>0) %>%
   # Remove halibut
   filter(comm_name!="California halibut") %>%
   # Add date dummy
@@ -192,7 +193,7 @@ theme3 <- theme(axis.text=element_text(size=7),
 
 # Bycatch ratio by depth
 g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=bottom_depth_fa, y=ratio)) +
-  facet_wrap(~factor(comm_name, levels=top20spp), ncol=5, scales="free_x") +
+  facet_wrap(~factor(comm_name, levels=top20spp), ncol=5, scales="free") +
   geom_smooth(fill="grey80", color="black") +
   geom_point(pch=21, color="grey30", alpha=0.5) +
   # Horizontal line
@@ -212,7 +213,7 @@ ggsave(g, filename=file.path(plotdir, "FigX_cdfw_gillnet_obs_bycatch_ratio_by_de
 
 # Bycatch ratio by day of year
 g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=date_dummy, y=ratio)) +
-  facet_wrap(~factor(comm_name, levels=top20spp), ncol=5) +
+  facet_wrap(~factor(comm_name, levels=top20spp), ncol=5, scales="free_y") +
   geom_smooth(fill="grey80", color="black") +
   geom_point(pch=21, color="grey30", alpha=0.5) +
   # Horizontal line
