@@ -17,6 +17,7 @@ plotdir <- "data/wcgop/figures"
 # Read data
 data_orig <- readRDS(file=file.path(outdir, "WCGOP_2002_2020_observer_data.Rds"))
 
+
 # Build data
 ################################################################################
 
