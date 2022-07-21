@@ -60,6 +60,8 @@ data <- data_orig %>%
   filter(bycatch_ratio_discarded>0)
 
 
+table(data$gear)
+
 # Build statistics
 ################################################################################
 
