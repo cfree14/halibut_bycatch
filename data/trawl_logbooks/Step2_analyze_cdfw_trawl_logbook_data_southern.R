@@ -49,7 +49,9 @@ data <- data_orig  %>%
   # Remove CA halibut
   filter(comm_name!="California halibut") %>%
   # Remove outliers
-  filter(depth_avg_fathoms<150)
+  filter(depth_avg_fathoms<150) %>%
+  # Reduce to southern fishery
+  filter(set_lat_dd<34.6)
 
 # Number of tows in dataset
 ntows_tot <- n_distinct(data$tow_id)
@@ -64,6 +66,7 @@ stats <- data %>%
 
 # Top 20 species
 top20spp <- stats$comm_name[1:20]
+top40spp <- stats$comm_name[1:40]
 
 
 # Block-level data
@@ -109,10 +112,12 @@ theme2 <-  theme(axis.text=element_text(size=6),
 
 
 # Plot bycatch ratio boxplots
-g1 <- ggplot(stats, aes(x=ptows, y=factor(comm_name, levels=stats$comm_name))) +
+g1 <- ggplot(stats %>% filter(comm_name %in% top40spp), aes(x=ptows, y=factor(comm_name, levels=stats$comm_name))) +
   geom_bar(stat="identity") +
+  # Reference line
+  geom_hline(yintercept=20.5, linetype="dashed") +
   # Labels
-  labs(x="Bycatch occurence\n(percent of trawl tows)", y="", tag="A", title="CDFW trawl logbooks") +
+  labs(x="Catch occurrence\n(percent of trawl tows)", y="", tag="A", title="CDFW trawl logbooks - southern trawl fishery") +
   # Axis
   scale_x_continuous(labels=scales::percent) +
   # Theme
@@ -120,12 +125,14 @@ g1 <- ggplot(stats, aes(x=ptows, y=factor(comm_name, levels=stats$comm_name))) +
 g1
 
 # Plot bycatch ratio boxplots
-g2 <- ggplot(data, aes(x=ratio, y=factor(comm_name, levels=stats$comm_name))) +
+g2 <- ggplot(data %>% filter(comm_name %in% top40spp), aes(x=ratio, y=factor(comm_name, levels=top40spp))) +
   geom_boxplot(lwd=0.2, outlier.size = 0.5, color="grey30", fill="grey90") +
+  # Reference line
+  geom_hline(yintercept=20.5, linetype="dashed") +
   # Vertical line
   geom_vline(xintercept = 1) +
   # Labels
-  labs(x="Bycatch ratio\n(bycatch / halibut catch)", y="", tag="B", title=" ") +
+  labs(x="Catch ratio\n(non-halibut landings / halibut landings)", y="", tag="B", title=" ") +
   # Axis
   scale_x_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
   # Theme
@@ -138,7 +145,7 @@ g <- gridExtra::grid.arrange(g1, g2, nrow=1, widths=c(0.55, 0.45))
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_by_species.png"),
+ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_by_species_southern.png"),
        width=6.5, height=6.5, units="in", dpi=600)
 
 
@@ -165,7 +172,7 @@ g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=year, y=ratio, group=y
   # Reference line
   geom_hline(yintercept=1) +
   # Labels
-  labs(y="Bycatch ratio", x="Year", title="CDFW trawl logbooks") +
+  labs(y="Catch ratio\n(non-halibut landings / halibut landings)", x="Year", title="CDFW trawl logbooks - southern trawl fishery") +
   # Axis
   scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
   # Theme
@@ -174,7 +181,7 @@ g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=year, y=ratio, group=y
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_over_time.png"),
+ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_over_time_southern.png"),
        width=6.5, height=5, units="in", dpi=600)
 
 # Bycatch over space
@@ -200,13 +207,15 @@ theme_map <- theme(axis.text=element_text(size=6),
 g <- ggplot(data_block_sf %>% filter(comm_name%in%top20spp), aes(fill=ratio_med)) +
   facet_wrap(~factor(comm_name, levels=top20spp), ncol=5) +
   geom_sf(lwd=0.1) +
+  # Reference line
+  geom_hline(yintercept = 34.6, lwd=0.5) +
   # USA
   geom_sf(data=usa, fill="grey90", color="white", lwd=0.2, inherit.aes = F) +
   geom_sf(data=mexico, fill="grey90", color="white", lwd=0.2, inherit.aes = F) +
   # Labels
-  labs(x="", y="", title="CDFW trawl logbooks") +
+  labs(x="", y="", title="CDFW trawl logbooks - southern trawl fishery") +
   # Legend
-  scale_fill_gradientn(name="Median\nbycatch ratio",
+  scale_fill_gradientn(name="Median\ncatch ratio",
                        colors=RColorBrewer::brewer.pal(9, "YlOrRd"),
                        trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
   guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
@@ -220,7 +229,7 @@ g <- ggplot(data_block_sf %>% filter(comm_name%in%top20spp), aes(fill=ratio_med)
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_over_space.png"),
+ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_over_space_southern.png"),
        width=6.5, height=7.5, units="in", dpi=600)
 
 
@@ -243,12 +252,12 @@ theme3 <- theme(axis.text=element_text(size=7),
 # Bycatch ratio by depth
 g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=depth_avg_fathoms, y=ratio)) +
   facet_wrap(~factor(comm_name, levels=top20spp), ncol=5, scales="free_x") +
-  geom_smooth(fill="grey80", color="black") +
-  geom_point(pch=21, color="grey30", alpha=0.5) +
+  geom_point(pch=21, color="grey60", alpha=0.5, size=0.7) +
+  geom_smooth(fill="grey30", color="black", alpha=0.7, lwd=0.5) +
   # Horizontal line
   geom_hline(yintercept=1, linetype="dotted") +
   # Labels
-  labs(x="Depth (fathoms)", y="Bycatch ratio", title="CDFW trawl logbooks") +
+  labs(x="Depth (fathoms)", y="Catch ratio\n(non-halibut landings / halibut landings)", title="CDFW trawl logbooks - southern trawl fishery") +
   # Axis
   scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
   # Theme
@@ -256,19 +265,19 @@ g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=depth_avg_fathoms, y=r
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_by_depth.png"),
+ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_by_depth_southern.png"),
        width=6.5, height=5.5, units="in", dpi=600)
 
 
 # Bycatch ratio by day of year
 g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=date_dummy, y=ratio)) +
   facet_wrap(~factor(comm_name, levels=top20spp), ncol=5) +
-  geom_smooth(fill="grey80", color="black") +
-  geom_point(pch=21, color="grey30", alpha=0.5) +
+  geom_point(pch=21, color="grey60", alpha=0.5, size=0.7) +
+  geom_smooth(fill="grey30", color="black", alpha=0.7, lwd=0.5) +
   # Horizontal line
   geom_hline(yintercept=1, linetype="dotted") +
   # Labels
-  labs(x="Day of year", y="Bycatch ratio") +
+  labs(x="Day of year", y="Catch ratio\n(non-halibut landings / halibut landings)", title="CDFW trawl logbooks - southern trawl fishery") +
   # Axis
   scale_x_date(date_breaks = "2 months", date_labels =  "%b") +
   scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
@@ -278,7 +287,7 @@ g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=date_dummy, y=ratio)) 
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_by_date.png"),
+ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_by_date_southern.png"),
        width=6.5, height=5.5, units="in", dpi=600)
 
 
