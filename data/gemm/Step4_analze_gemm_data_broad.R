@@ -131,7 +131,7 @@ g <- ggplot(data, aes(x=year, y=catch_prop, fill=target_type, alpha=catch_catg))
   facet_wrap(~sector, ncol=5, scales="free_y") +
   geom_bar(stat="identity", color="grey30", lwd=0.1) +
   # Labels
-  labs(x="Year", y="Proportion of catch", title="GEMM mortality estimates") +
+  labs(x="Year", y="Proportion of catch", title="GEMM catch estimates") +
   # Legend
   scale_fill_discrete(name="Species type") +
   scale_alpha_manual(name="Catch type", values=c(1, 0.7, 0.3) %>% rev()) +
@@ -157,7 +157,7 @@ g <- ggplot(data2, aes(x=year, y=ratio, group=metric, color=target_type, linetyp
   # Reference line
   geom_hline(yintercept=1, linetype="dotted", lwd=0.3, color="grey60") +
   # Labels
-  labs(x="Year", y="Bycatch ratio", title="GEMM mortality estimates") +
+  labs(x="Year", y="Bycatch ratio", title="GEMM catch estimates") +
   # Legend
   scale_color_discrete(name="Species type") +
   scale_linetype_discrete(name="Catch type") +

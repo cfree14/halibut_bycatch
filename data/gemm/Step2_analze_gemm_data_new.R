@@ -76,7 +76,7 @@ theme1 <- theme(axis.text=element_text(size=6),
 g <- ggplot(data1, aes(y=sector, x=catch_mt, fill=catch_type)) +
   geom_bar(stat="identity", color="black", lwd=0.1) +
   # Labels
-  labs(x="Average annual catch, 2002-2020 (mt)", y="", title="GEMM mortality estimates") +
+  labs(x="Average annual catch, 2002-2020 (mt)", y="", title="GEMM catch estimates") +
   # Legend
   scale_fill_manual(name="",
                     values=c("grey10", "grey50", "grey90") %>% rev()) +
@@ -132,7 +132,7 @@ g1 <- ggplot(data2, aes(x=year, y=catch_mt, fill=catch_type)) +
   facet_wrap(~sector, nrow=1) +
   geom_bar(stat="identity", color="black", lwd=0.1) +
   # Labels
-  labs(x="", y="Catch (mt)", tag="A") +
+  labs(x="", y="Catch (mt)", tag="A", title="GEMM catch estimates") +
   scale_x_continuous(breaks=seq(2000, 2020, 5), lim=c(2000, 2020)) +
   # Legend
   scale_fill_manual(name="",
@@ -284,7 +284,7 @@ g <- ggplot(data4, aes(x=year, y=ratio)) +
   # Line
   geom_line() +
   # Labels
-  labs(x="", y="Bycatch ratio\n(all bycatch / retained halibut catch)") +
+  labs(x="", y="Bycatch ratio\n(all bycatch / retained halibut catch)", title="GEMM OA CA Halibut bycatch ratios") +
   # Axis
   scale_y_continuous(lim=c(0,NA)) +
   scale_x_continuous(breaks=seq(2000, 2020, 5), lim=c(2000, 2020)) +
