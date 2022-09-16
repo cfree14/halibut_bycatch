@@ -33,7 +33,7 @@ blocks_df <- blocks %>%
 ################################################################################
 
 # Files
-files <- list.files(indir)
+files <- list.files(indir, pattern=".csv")
 files_do <- files[files!="VesselPermitExtract.CSV"]
 
 # Merge
