@@ -18,6 +18,10 @@ plotdir <- "data/landings_receipts/figures/trawl"
 data_orig <- readRDS(file=file.path(outdir, "CDFW_2000_2020_landings_receipts.Rds"))
 table(data_orig$gear_type)
 
+# Read trawl vessel key
+permit_key <-readRDS("data/comm_permits/processed/trawl_permit_key.Rds") %>%
+  mutate(permit_yn=T)
+
 # Blocks
 blocks <- wcfish::blocks
 blocks_df <- blocks %>%
@@ -35,6 +39,9 @@ data <- data_orig %>%
   # Reduce to region of interest
   left_join(blocks_df %>% select(block_id, block_lat_dd), by="block_id") %>%
   filter(!is.na(block_lat_dd) & block_lat_dd < 34.6) %>%
+  # Reduce to vessels with CA halibut permit
+  left_join(permit_key, by=c("vessel_id", "date")) %>%
+  filter(permit_yn==T) %>%
   # Add trip id
   mutate(trip_id=paste(receipt_id, date, gear, block_id, sep="-")) %>%
   # Reduce to trips with CA halibut
@@ -287,6 +294,11 @@ ggsave(g, filename=file.path(plotdir, "FigX_landings_receipts_bycatch_ratio_by_d
 
 
 
+# Sensitive species - none
+################################################################################
+
+data_sens <- data %>%
+  filter(comm_name %in% c("Silver salmon", "Yelloweye rockfish", "Green sturgeon"))
 
 
 
