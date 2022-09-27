@@ -25,8 +25,10 @@ data_orig <- readRDS(file=file.path(outdir, "WCGOP_2002_2020_observer_data.Rds")
 data <- data_orig %>%
   # Reduce to sector of interest
   filter(sector=="OA CA Halibut") %>%
-  # Reduce to sets SOUTH and exclude offshore federal trawlers
-  filter(set_lat_dd <= 34.6 & haul_depth_fm <= 40) %>%
+  # Fxclude offshore federal trawlers
+  filter(haul_depth_fm <= 40) %>%
+  # Mark north and south
+  mutate(region=ifelse(set_lat_dd > 34.6, "Northern fishery", "Southern fishery")) %>%
   # Add set id
   mutate(set_id=paste(trip_id, haul_id, sep="-")) %>%
   # Reduce to sets with CA halibut catch
@@ -36,7 +38,7 @@ data <- data_orig %>%
   filter(halibut_yn==T) %>%
   # Sum catches within set (retain attributes of interest)
   # You shouldn't have to do this but it solves problems where a species has 1 row for discarded catch and 1 row for retained catch
-  group_by(set_id, set_date, set_depth_fm, haul_depth_fm, comm_name) %>%
+  group_by(region, set_id, set_date, set_depth_fm, haul_depth_fm, comm_name) %>%
   summarize(landings_kg=sum(landings_kg),
             discards_kg=sum(discards_kg)) %>%
   ungroup() %>%
@@ -55,9 +57,10 @@ data <- data_orig %>%
          date_dummy=paste("2020", lubridate::month(set_date), lubridate::day(set_date), sep="-") %>% lubridate::ymd()) %>%
   # Arrange
   select(-c(set_depth_fm, haul_depth_fm)) %>%
-  select(set_id, year, set_date, date_dummy, day_of_year, depth_fa_avg, comm_name, landings_kg:bycatch_ratio_discarded, everything()) %>%
+  select(region, set_id, year, set_date, date_dummy, day_of_year, depth_fa_avg, comm_name, landings_kg:bycatch_ratio_discarded, everything()) %>%
   # Reduce to data on discards
   filter(bycatch_ratio_discarded>0)
+
 
 
 # Build statistics
@@ -68,7 +71,7 @@ nsets_tot <- n_distinct(data$set_id)
 
 # Build stats
 stats <- data %>%
-  group_by(comm_name) %>%
+  group_by(region, comm_name) %>%
   summarize(nsets=n_distinct(set_id),
             psets=nsets/nsets_tot) %>%
   ungroup() %>%
@@ -100,7 +103,7 @@ g1 <- ggplot(stats, aes(y=factor(comm_name, levels=comm_name), x=psets)) +
   # Boxplots
   geom_bar(stat="identity") +
   # Labels
-  labs(x="Bycatch occurrence\n(percent of trawl tows)", y="", tag="A", title="WCGOP trawl observer data\nnsouthern trawl fishery") +
+  labs(x="Bycatch occurence\n(percent of trawl tows)", y="", tag="A", title="WCGOP trawl observer data\nnorthern trawl fishery") +
   # Axis
   scale_x_continuous(labels=scales::percent) +
   # Theme
@@ -129,7 +132,7 @@ g <- gridExtra::grid.arrange(g1, g2, nrow=1, widths=c(0.55, 0.45))
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_wcgop_trawl_obs_bycatch_ratio_by_species_discards_south.png"),
+ggsave(g, filename=file.path(plotdir, "FigX_wcgop_trawl_obs_bycatch_ratio_by_species_discards_north.png"),
        width=6.5, height=8.5, units="in", dpi=600)
 
 
@@ -156,7 +159,7 @@ g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=year, y=bycatch_ratio_
   # Reference line
   geom_hline(yintercept=1) +
   # Labels
-  labs(y="Bycatch ratio\n(discards bycatch / halibut landings)", x="Year", title="WCGOP trawl observer data - southern trawl fishery") +
+  labs(y="Bycatch ratio\n(discards / halibut landings)", x="Year", title="WCGOP trawl observer data - northern trawl fishery") +
   # Axis
   scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
   # Theme
@@ -165,7 +168,7 @@ g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=year, y=bycatch_ratio_
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_wcgop_trawl_obs_bycatch_ratio_over_time_discards_south.png"),
+ggsave(g, filename=file.path(plotdir, "FigX_wcgop_trawl_obs_bycatch_ratio_over_time_discards_north.png"),
        width=6.5, height=5, units="in", dpi=600)
 
 
@@ -191,14 +194,14 @@ g <- ggplot(data, aes(x=depth_fa_avg, y=bycatch_ratio_discarded)) +
   geom_point(pch=21, color="grey60", alpha=0.5, size=0.7) +
   # geom_smooth(fill="grey30", color="black", alpha=0.7, lwd=0.5) +
   # Labels
-  labs(x="Depth (fathoms)", y="Bycatch ratio\n(discards bycatch / halibut landings)",
-       title="WCGOP trawl observer data - southern trawl fishery") +
+  labs(x="Depth (fathoms)", y="Bycatch ratio\n(discards / halibut landings)",
+       title="WCGOP trawl observer data - northern trawl fishery") +
   # Theme
   theme_bw() + theme3
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_wcgop_trawl_obs_bycatch_ratio_by_depth_discards_south.png"),
+ggsave(g, filename=file.path(plotdir, "FigX_wcgop_trawl_obs_bycatch_ratio_by_depth_discards_north.png"),
        width=6.5, height=5.5, units="in", dpi=600)
 
 # Plot data
@@ -210,7 +213,7 @@ g <- ggplot(data, aes(x=date_dummy, y=bycatch_ratio_discarded)) +
   geom_hline(yintercept=1, linetype="dotted") +
   # Labels
   labs(x="Day of year", y="Bycatch ratio\n(discards / halibut landings)",
-       title="WCGOP trawl observer data - southern trawl fishery") +
+       title="WCGOP trawl observer data - northern trawl fishery") +
   # Axis
   scale_x_date(date_breaks = "2 months", date_labels =  "%b") +
   # Theme
@@ -218,7 +221,7 @@ g <- ggplot(data, aes(x=date_dummy, y=bycatch_ratio_discarded)) +
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_wcgop_trawl_obs_bycatch_ratio_by_yday_discards_south.png"),
+ggsave(g, filename=file.path(plotdir, "FigX_wcgop_trawl_obs_bycatch_ratio_by_yday_discards_north.png"),
        width=6.5, height=5.5, units="in", dpi=600)
 
 

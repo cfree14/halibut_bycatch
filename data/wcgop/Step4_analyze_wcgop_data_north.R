@@ -102,7 +102,7 @@ g1 <- ggplot(stats, aes(y=factor(comm_name, levels=comm_name), x=psets)) +
   # Boxplots
   geom_bar(stat="identity") +
   # Labels
-  labs(x="Bycatch occurence\n(percent of trawl tows)", y="", tag="A", title="WCGOP trawl observer data") +
+  labs(x="Bycatch occurence\n(percent of trawl tows)", y="", tag="A", title="WCGOP trawl observer data\nnorthern trawl fishery") +
   # Axis
   scale_x_continuous(labels=scales::percent) +
   # Theme
@@ -116,7 +116,7 @@ g2 <- ggplot(data, aes(y=factor(comm_name, levels=stats$comm_name), x=bycatch_ra
   # Reference line
   geom_vline(xintercept = 1) +
   # Labels
-  labs(x="Bycatch ratio\n(discarded bycatch / reteained halibut catch)", y="", tag="B", title="  ") +
+  labs(x="Bycatch ratio\n(discards / halibut landings)", y="", tag="B", title=" \n ") +
   # Axis
   scale_x_continuous(trans="log10",
                      breaks=c(0.1, 1, 10, 100),
@@ -158,7 +158,7 @@ g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=year, y=bycatch_ratio_
   # Reference line
   geom_hline(yintercept=1) +
   # Labels
-  labs(y="Bycatch ratio\n(discarded bycatch / retained halibut catch)", x="Year", title="WCGOP trawl observer data") +
+  labs(y="Bycatch ratio\n(discards / halibut landings)", x="Year", title="WCGOP trawl observer data - northern trawl fishery") +
   # Axis
   scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
   # Theme
@@ -193,7 +193,8 @@ g <- ggplot(data, aes(x=depth_fa_avg, y=bycatch_ratio_discarded)) +
   geom_point(pch=21, color="grey60", alpha=0.5, size=0.7) +
   # geom_smooth(fill="grey30", color="black", alpha=0.7, lwd=0.5) +
   # Labels
-  labs(x="Average depth (fathoms)", y="Bycatch ratio") +
+  labs(x="Depth (fathoms)", y="Bycatch ratio\n(discards / halibut landings)",
+       title="WCGOP trawl observer data - northern trawl fishery") +
   # Theme
   theme_bw() + theme3
 g
@@ -210,7 +211,8 @@ g <- ggplot(data, aes(x=date_dummy, y=bycatch_ratio_discarded)) +
   # Horizontal line
   geom_hline(yintercept=1, linetype="dotted") +
   # Labels
-  labs(x="Day of year", y="Bycatch ratio\n(discarded bycatch / retained halibut catch)") +
+  labs(x="Day of year", y="Bycatch ratio\n(discards / halibut landings)",
+       title="WCGOP trawl observer data - northern trawl fishery") +
   # Axis
   scale_x_date(date_breaks = "2 months", date_labels =  "%b") +
   # Theme

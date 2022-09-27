@@ -18,12 +18,19 @@ plotdir <- "data/trawl_logbooks/figures"
 data_orig <- readRDS(file.path(outdir, "CDFW_2000_2020_trawl_logbook_data.Rds"))
 table(data_orig$target_spp)
 
+# Read trawl vessel key
+permit_key <- readRDS("data/comm_permits/processed/trawl_permit_key.Rds") %>%
+  mutate(permit_yn=T)
+
 
 # Build data
 ################################################################################
 
 # Build data
 data <- data_orig  %>%
+  # Reduce to trips with halibut permits
+  left_join(permit_key, by=c("vessel_id", "tow_date"="date")) %>%
+  filter(permit_yn==T) %>%
   # Reduce to halibut trips
   filter(target_spp=="California halibut" & !is.na(catch_lb)) %>%
   # Summarize by tow
@@ -291,7 +298,13 @@ ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_by_date_
        width=6.5, height=5.5, units="in", dpi=600)
 
 
+# Sensitive species
+#######################################
 
+data_sens <- data %>%
+  filter(comm_name %in% c("Silver salmon", "Yelloweye rockfish", "Green sturgeon"))
+
+sort(unique(data$comm_name))
 
 
 
