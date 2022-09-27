@@ -62,15 +62,19 @@ data <- data_orig %>%
   # Summarize
   group_by(sector, target_spp, target_type, year) %>%
   summarize(landings_mt=sum(landings_mt),
-            discards_mt=sum(discards_mt_tot)) %>%
+            discards_mt_dead=sum(discards_mt_dead),
+            discards_mt_live=sum(discards_mt_live)) %>%
   ungroup() %>%
   # Gather
   gather(key="catch_catg", value="catch_mt", 5:ncol(.)) %>%
   mutate(catch_catg=recode_factor(catch_catg,
-                                  "discards_mt"="Discards",
+                                  "discards_mt_dead"="Dead discards",
+                                  "discards_mt_live"="Live discards",
                                   "landings_mt"="Landings")) %>%
+  # Mutate
+  mutate(catch_type=ifelse(catch_catg=="Landings", "Landings", "Discards")) %>%
   # Arrange
-  select(sector, target_spp, target_type, catch_catg, year, everything()) %>%
+  select(sector, target_spp, target_type, catch_type, catch_catg, year, everything()) %>%
   # Calculate proportion
   group_by(sector, year) %>%
   mutate(catch_prop=catch_mt/sum(catch_mt)) %>%
@@ -87,9 +91,11 @@ data2 <- data %>%
   select(sector, year, label, catch_mt) %>%
   spread(key="label", value="catch_mt") %>%
   # Calculate ratio
-  mutate(non_target_discards=non_target_discards / target_landings,
+  mutate(non_target_dead_discards=non_target_dead_discards / target_landings,
          non_target_landings=non_target_landings / target_landings,
-         target_discards=target_discards / target_landings,
+         non_target_live_discards=non_target_live_discards / target_landings,
+         target_dead_discards=target_dead_discards / target_landings,
+         target_live_discards=target_live_discards / target_landings,
          target_landings=target_landings / target_landings) %>%
   # Gather
   gather(key="metric", value="ratio", 3:ncol(.)) %>%
@@ -97,8 +103,9 @@ data2 <- data %>%
   filter(metric!="target_landings") %>%
   # Muatte
   mutate(target_type=ifelse(grepl("non", metric), "Non-target", "Target"),
-         catch_catg=ifelse(grepl("landings", metric), "Landings", 'Discards')) %>%
-  mutate(catch_catg=factor(catch_catg, levels=c("Landings", "Discards")))
+         catch_catg=ifelse(grepl("landings", metric), "Landings",
+                           ifelse(grepl("dead", metric), "Discards (dead)", "Discards (live)"))) %>%
+  mutate(catch_catg=factor(catch_catg, levels=c("Landings", "Discards (live)", "Discards (dead)")))
 
 
 # Plot data
@@ -127,7 +134,7 @@ g <- ggplot(data, aes(x=year, y=catch_prop, fill=target_type, alpha=catch_catg))
   labs(x="Year", y="Proportion of catch", title="GEMM catch estimates") +
   # Legend
   scale_fill_discrete(name="Species type") +
-  scale_alpha_manual(name="Catch type", values=c(1, 0.5) %>% rev()) +
+  scale_alpha_manual(name="Catch type", values=c(1, 0.7, 0.3) %>% rev()) +
   # Theme
   theme_bw() + my_theme +
   theme(legend.position = c(0.8, 0.15),

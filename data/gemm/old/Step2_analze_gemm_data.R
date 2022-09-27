@@ -25,6 +25,11 @@ data_orig <- readRDS(file=file.path(outdir, "GEMM_2002_2020_data.Rds"))
 # Halibut by sector
 ################################################################################
 
+# Stats for manuscript
+n_distinct(data_orig$sector)
+n_distinct(data_orig$species)
+
+
 # CA halibut catch/discards by sector
 data1 <- data_orig %>%
   # Reduce to CA halibut
@@ -34,24 +39,27 @@ data1 <- data_orig %>%
   # Summarize annual catch by sector
   group_by(sector_type, sector, year) %>%
   summarise(landings_mt=sum(landings_mt),
-            discards_mt=sum(discards_mt_tot)) %>%
+            discards_mt_dead=sum(discards_mt_dead),
+            discards_mt_live=sum(discards_mt_live)) %>%
   ungroup() %>%
   # Mean annual catch by sector
   group_by(sector_type, sector) %>%
   summarise(landings_mt=mean(landings_mt),
-            discards_mt=mean(discards_mt)) %>%
+            discards_mt_dead=sum(discards_mt_dead),
+            discards_mt_live=sum(discards_mt_live)) %>%
   ungroup() %>%
   # Simplify and order
-  mutate(catch_mt=landings_mt+discards_mt) %>%
+  mutate(catch_mt=landings_mt+discards_mt_dead+discards_mt_live) %>%
   arrange(desc(catch_mt)) %>%
   filter(catch_mt>0) %>%
   mutate(sector=factor(sector, levels=sector)) %>%
   select(-catch_mt) %>%
   # Gather catch type
   gather(key="catch_type", value="catch_mt", 3:ncol(.)) %>%
-  mutate(catch_type=recode_factor(catch_type,
-                           "discards_mt"="Discards",
-                           "landings_mt"="Landings"))
+  mutate(catch_type=recode(catch_type,
+                           "landings_mt"="Landings",
+                           "discards_mt_dead"="Discards (dead)",
+                           "discards_mt_live"="Discards (live)"))
 
 # Theme
 theme1 <- theme(axis.text=element_text(size=6),
@@ -60,7 +68,6 @@ theme1 <- theme(axis.text=element_text(size=6),
                 legend.title=element_text(size=8),
                 strip.text=element_text(size=8),
                 plot.title=element_text(size=10),
-                plot.tag=element_text(size=8),
                 # Gridlines
                 panel.grid.major = element_blank(),
                 panel.grid.minor = element_blank(),
@@ -71,13 +78,11 @@ theme1 <- theme(axis.text=element_text(size=6),
 
 # Plot data
 g <- ggplot(data1, aes(y=sector, x=catch_mt, fill=catch_type)) +
-  geom_bar(stat="identity", color="black", lwd=0.1) +
+  geom_bar(stat="identity") +
   # Labels
-  labs(x="Average annual catch, 2002-2020 (mt)", y="", title="GEMM catch estimates") +
+  labs(x="Average annual catch, 2002-2020 (mt)", y="", title="GEMM mortality estimates") +
   # Legend
-  scale_fill_manual(name="",
-                    values=c("grey10", "grey90") %>% rev()) +
-  guides(fill = guide_legend(reverse=T)) +
+  scale_fill_discrete(name="") +
   # Theme
   theme_bw() + theme1 +
   theme(legend.position=c(0.8, 0.8),
@@ -100,12 +105,12 @@ data2 <- data_orig %>%
   # Halibut
   filter(species=="California Halibut") %>%
   # Simplify
-  select(sector, year, landings_mt, discards_mt_tot) %>%
+  select(sector, year, landings_mt, discards_mt) %>%
   # Gather catch type
   gather(key="catch_type", value="catch_mt", 3:ncol(.)) %>%
-  mutate(catch_type=recode_factor(catch_type,
-                           "discards_mt_tot"="Discards",
-                           "landings_mt"="Landings")) %>%
+  mutate(catch_type=recode(catch_type,
+                           "landings_mt"="Landings",
+                           "discards_mt"="Discards")) %>%
   # Sectors of interest
   filter(sector %in% sectors_do) %>%
   mutate(sector=factor(sector, levels=sectors_do)) %>%
@@ -123,14 +128,12 @@ data2_ratio <- data2 %>%
 # Plot catch
 g1 <- ggplot(data2, aes(x=year, y=catch_mt, fill=catch_type)) +
   facet_wrap(~sector, nrow=1) +
-  geom_bar(stat="identity", color="black", lwd=0.1) +
+  geom_bar(stat="identity") +
   # Labels
-  labs(x="", y="Catch (mt)", tag="A", title="GEMM catch estimates") +
+  labs(x="", y="Catch (mt)") +
   scale_x_continuous(breaks=seq(2000, 2020, 5), lim=c(2000, 2020)) +
   # Legend
-  scale_fill_manual(name="",
-                    values=c("grey10",  "grey90") %>% rev()) +
-  guides(fill = guide_legend(reverse=T)) +
+  scale_fill_discrete(name="") +
   # Theme
   theme_bw() + theme1 +
   theme(axis.title.x=element_blank(),
@@ -141,14 +144,12 @@ g1
 # Plot proportion
 g2 <- ggplot(data2, aes(x=year, y=catch_prop, fill=catch_type)) +
   facet_wrap(~sector, nrow=1) +
-  geom_bar(stat="identity", color="black", lwd=0.1) +
+  geom_bar(stat="identity") +
   # Labels
-  labs(x="", y="Proportion of catch", tag="B") +
+  labs(x="", y="Proportion of catch") +
   scale_x_continuous(breaks=seq(2000, 2020, 5), lim=c(2000, 2020)) +
   # Legend
-  scale_fill_manual(name="",
-                    values=c("grey10", "grey90") %>% rev()) +
-  guides(fill = guide_legend(reverse=T)) +
+  scale_fill_discrete(name="") +
   # Theme
   theme_bw() + theme1 +
   theme(axis.title.x=element_blank(),
@@ -162,12 +163,11 @@ g3 <- ggplot(data2_ratio, aes(x=year, y=ratio)) +
   # Reference line
   geom_hline(yintercept = 1, color="grey50", linetype="dotted") +
   # Labels
-  labs(x="", y="Bycatch ratio\n(discards / landings)", tag="C") +
+  labs(x="", y="Bycatch ratio\n(discards / landings)") +
   scale_x_continuous(breaks=seq(2000, 2020, 5), lim=c(2000, 2020)) +
   # Theme
   theme_bw() +theme1 +
-  theme(legend.position=c(0.8, 0.8),
-        axis.title.x=element_blank())
+  theme(axis.title.x=element_blank())
 g3
 
 # Merge plots
@@ -176,7 +176,7 @@ g
 
 # Export plot
 ggsave(g, filename=file.path(plotdir, "FigX_gemm_halibut_by_sector_year.png"),
-       width=6.5, height=5, units="in", dpi=600)
+       width=6.5, height=4.5, units="in", dpi=600)
 
 
 # OA CA Halibut bycatch ratio distributions
@@ -203,7 +203,7 @@ data3 <- data_orig %>%
   # Compute totals by species and year (summing across mgmt grouops) %>%
   group_by(species, year) %>%
   summarize(landings_mt=sum(landings_mt),
-            discards_mt=sum(discards_mt_tot),
+            discards_mt=sum(discards_mt),
             catch_mt=sum(catch_mt)) %>%
   ungroup() %>%
   # Record rertained halibut bycatch
@@ -223,8 +223,8 @@ data3 <- data_orig %>%
                                   "ratio_dis"="Discarded catch")) %>%
   # Remove zeroes
   filter(ratio!=0) %>%
-  # Remove kelp
-  filter(species!="Kelp") %>%
+  # Remove halibut (and kelp)
+  filter(species!="California Halibut" & species!="Kelp") %>%
   # Format species
   mutate(species=stringr::str_to_sentence(species),
          species=gsub(" unid", "", species))
@@ -274,7 +274,7 @@ g <- ggplot(data4, aes(x=year, y=ratio)) +
   # Line
   geom_line() +
   # Labels
-  labs(x="", y="Bycatch ratio\n(all bycatch / retained halibut catch)", title="GEMM OA CA Halibut bycatch ratios") +
+  labs(x="", y="Bycatch ratio\n(all bycatch / retained halibut catch)") +
   # Axis
   scale_y_continuous(lim=c(0,NA)) +
   scale_x_continuous(breaks=seq(2000, 2020, 5), lim=c(2000, 2020)) +

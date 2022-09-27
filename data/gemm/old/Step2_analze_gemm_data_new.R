@@ -233,8 +233,8 @@ data3 <- data_orig %>%
                                   "ratio_dis"="Discarded catch")) %>%
   # Remove zeroes
   filter(ratio!=0) %>%
-  # Remove halibut (and kelp)
-  filter(species!="California Halibut" & species!="Kelp") %>%
+  # Remove kelp
+  filter(species!="Kelp") %>%
   # Format species
   mutate(species=stringr::str_to_sentence(species),
          species=gsub(" unid", "", species))

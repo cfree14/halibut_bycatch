@@ -78,6 +78,7 @@ stats <- data %>%
 
 # Top 20 species
 top20spp <- stats$comm_name[1:20]
+top40spp <- stats$comm_name[1:40]
 
 
 # Plot data - bycatch species
@@ -98,7 +99,7 @@ theme1 <-  theme(axis.text=element_text(size=5),
                  legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
-g1 <- ggplot(stats, aes(y=factor(comm_name, levels=comm_name), x=psets)) +
+g1 <- ggplot(stats %>% filter(comm_name%in%top40spp), aes(y=factor(comm_name, levels=stats$comm_name), x=psets)) +
   # Boxplots
   geom_bar(stat="identity") +
   # Labels
@@ -110,7 +111,7 @@ g1 <- ggplot(stats, aes(y=factor(comm_name, levels=comm_name), x=psets)) +
 g1
 
 # Plot data
-g2 <- ggplot(data, aes(y=factor(comm_name, levels=stats$comm_name), x=bycatch_ratio_discarded)) +
+g2 <- ggplot(data %>% filter(comm_name%in%top40spp), aes(y=factor(comm_name, levels=stats$comm_name), x=bycatch_ratio_discarded)) +
   # Boxplots
   geom_boxplot(fill="grey90", lwd=0.2, outlier.size = 0.3) +
   # Reference line
@@ -188,8 +189,8 @@ theme3 <- theme(axis.text=element_text(size=7),
                 legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
-g <- ggplot(data, aes(x=depth_fa_avg, y=bycatch_ratio_discarded)) +
-  facet_wrap(~comm_name, ncol=5) +
+g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=depth_fa_avg, y=bycatch_ratio_discarded)) +
+  facet_wrap(~factor(comm_name, levels=top20spp), ncol=5) +
   geom_point(pch=21, color="grey60", alpha=0.5, size=0.7) +
   # geom_smooth(fill="grey30", color="black", alpha=0.7, lwd=0.5) +
   # Labels
@@ -204,8 +205,8 @@ ggsave(g, filename=file.path(plotdir, "FigX_wcgop_trawl_obs_bycatch_ratio_by_dep
        width=6.5, height=5.5, units="in", dpi=600)
 
 # Plot data
-g <- ggplot(data, aes(x=date_dummy, y=bycatch_ratio_discarded)) +
-  facet_wrap(~comm_name, ncol=5) +
+g <- ggplot(data %>% filter(comm_name%in%top20spp), aes(x=date_dummy, y=bycatch_ratio_discarded)) +
+  facet_wrap(~factor(comm_name, levels=top20spp), ncol=5) +
   geom_point(pch=21, color="grey60", alpha=0.5, size=0.7) +
   # geom_smooth(fill="grey30", color="black", alpha=0.7, lwd=0.5) +
   # Horizontal line
