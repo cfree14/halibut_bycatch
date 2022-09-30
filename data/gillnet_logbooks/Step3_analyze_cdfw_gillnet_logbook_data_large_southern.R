@@ -347,4 +347,90 @@ write.csv(data_ts, file=file.path(plotdir, "TableX_gillnet_logbooks_time_series_
 
 
 
+# Sensitive species
+################################################################################
+
+# Data
+data_gsb <- data %>%
+  filter(comm_name=="Giant sea bass")
+
+# Plot ratio over time
+g1 <- ggplot(data_gsb, aes(x=year, y=ratio, group=year)) +
+  geom_boxplot(lwd=0.3, outlier.size = 0.5, color="grey40", fill="grey90") +
+  # Reference line
+  geom_hline(yintercept=1) +
+  # Labels
+  labs(y="Catch ratio\n(GSB landings / halibut landings)", x="Year", tag="A") +
+  # Axis
+  scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
+  # Theme
+  theme_bw() + theme1 +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+g1
+
+# Bycatch ratio by depth
+g2 <- ggplot(data_gsb %>% filter(depth_fa <100), aes(x=depth_fa, y=ratio)) +
+  geom_point(pch=21, color="grey60", alpha=0.5, size=0.7) +
+  geom_smooth(fill="grey30", color="black", alpha=0.7, lwd=0.5) +
+  # Horizontal line
+  geom_hline(yintercept=1, linetype="dotted") +
+  # Labels
+  labs(x="Depth (fathoms)", y="Catch ratio\n(GSB landings / halibut landings)", tag="B") +
+  # Axis
+  scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
+  # Theme
+  theme_bw() + theme3
+g2
+
+# Bycatch ratio by day of year
+g3 <- ggplot(data_gsb, aes(x=date_dummy, y=ratio)) +
+  geom_point(pch=21, color="grey60", alpha=0.5, size=0.7) +
+  geom_smooth(fill="grey30", color="black", alpha=0.7, lwd=0.5) +
+  # Horizontal line
+  geom_hline(yintercept=1, linetype="dotted") +
+  # Labels
+  labs(x="Day of year", y="Catch ratio\n(GSB landings / halibut landings)", tag="C") +
+  # Axis
+  scale_x_date(date_breaks = "2 months", date_labels =  "%b") +
+  scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
+  # Theme
+  theme_bw() + theme3 +
+  theme(axis.text.x=element_text(size=6))
+g3
+
+# Plot
+g4 <- ggplot(data_block_sf %>% filter(comm_name == "Giant sea bass"), aes(fill=ratio_med)) +
+  geom_sf(lwd=0.1) +
+  # Reference line
+  geom_hline(yintercept = 34.6, lwd=0.5) +
+  # USA
+  geom_sf(data=usa, fill="grey90", color="white", lwd=0.2, inherit.aes = F) +
+  geom_sf(data=mexico, fill="grey90", color="white", lwd=0.2, inherit.aes = F) +
+  # Labels
+  labs(x="", y="", tag="D") +
+  # Legend
+  scale_fill_gradientn(name="Median\ncatch ratio",
+                       colors=RColorBrewer::brewer.pal(9, "YlOrRd"),
+                       trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
+  # Axis
+  scale_x_continuous(breaks=seq(-124, -116, 4)) +
+  scale_y_continuous(breaks=seq(32, 42, 2)) +
+  # Crop
+  coord_sf(xlim=c(-125, -116), ylim=c(32, 42)) +
+  # Theme
+  theme_bw() + theme_map
+g4
+
+# Merge plots
+layout_matrix <- matrix(c(1,4,
+                          2,4,
+                          3,4), ncol=2, byrow=T)
+g <- gridExtra::grid.arrange(g1, g2, g3, g4,
+                             layout_matrix=layout_matrix)
+g
+
+# Export plot
+ggsave(g, filename=file.path(plotdir, "FigX_gillnet_logbooks_bycatch_ratio_by_gsb_southern_large.png"),
+       width=6.5, height=6.5, units="in", dpi=600)
 

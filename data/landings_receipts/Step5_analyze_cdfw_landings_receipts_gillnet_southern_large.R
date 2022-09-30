@@ -309,4 +309,82 @@ write.csv(data_ts, file=file.path(plotdir, "TableX_landing_receipt_time_series_g
 
 
 
+# Giant sea bass
+################################################################################
+
+# Filter data
+data_gsb <- data %>%
+  filter(comm_name=="Giant sea bass")
+
+
+# Plot over time
+g1 <- ggplot(data_gsb, aes(x=year, y=ratio, group=year)) +
+  geom_boxplot() +
+  # Reference line
+  geom_hline(yintercept=1) +
+  # Labels
+  labs(y="Catch ratio\n(giant sea bass landings / halibut landings)", x="Year",
+       tag="A") +
+  # Axis
+  scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
+  # Theme
+  theme_bw() + theme1 +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+g1
+
+# Plot day
+g2 <- ggplot(data_gsb, aes(x=date_dummy, y=ratio)) +
+  # Plot data
+  geom_point(pch=21, color="grey60", alpha=0.5, size=0.7) +
+  geom_smooth(fill="grey30", color="black", alpha=0.7, lwd=0.5) +
+  # Horizontal line
+  geom_hline(yintercept=1, linetype="dotted") +
+  # Labels
+  labs(x="Day of year", y="Catch ratio\n(giant sea bass landings / halibut landings)", tag="B") +
+  # Axis
+  scale_x_date(date_breaks = "2 months", date_labels =  "%b") +
+  scale_y_continuous(trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
+  # Theme
+  theme_bw() + theme3 +
+  theme(axis.text.x=element_text(size=6))
+g2
+
+# Plot map
+g3 <- ggplot(data_block_sf %>% filter(comm_name=="Giant sea bass"), aes(fill=ratio_med)) +
+  geom_sf(lwd=0.1) +
+  # Reference line
+  geom_hline(yintercept = 34.6, lwd=0.5) +
+  # USA
+  geom_sf(data=usa, fill="grey90", color="white", lwd=0.2, inherit.aes = F) +
+  geom_sf(data=mexico, fill="grey90", color="white", lwd=0.2, inherit.aes = F) +
+  # Labels
+  labs(x="", y="", tag="C") +
+  # Legend
+  scale_fill_gradientn(name="Median\ncatch ratio",
+                       colors=RColorBrewer::brewer.pal(9, "YlOrRd"),
+                       trans="log10", breaks=c(0.01, 0.1, 1, 10, 100), labels=c("0.01", "0.1", "1", "10", "100")) +
+  guides(fill = guide_colorbar(ticks.colour = "black", frame.colour = "black")) +
+  # Axis
+  scale_x_continuous(breaks=seq(-124, -116, 4)) +
+  scale_y_continuous(breaks=seq(32, 42, 2)) +
+  # Crop
+  coord_sf(xlim=c(-125, -116), ylim=c(32, 42)) +
+  # Theme
+  theme_bw() + theme_map
+g3
+
+# Merge plots
+layout_matrix <- matrix(c(1,3,
+                          2,3), ncol=2, byrow=T)
+g <- gridExtra::grid.arrange(g1, g2, g3,
+                             layout_matrix=layout_matrix)
+
+
+# Export plot
+ggsave(g, filename=file.path(plotdir, "FigX_landing_receipts_bycatch_ratio_by_gsb_gillnet_southern_large.png"),
+       width=6.5, height=5.5, units="in", dpi=600)
+
+
+
+
 
