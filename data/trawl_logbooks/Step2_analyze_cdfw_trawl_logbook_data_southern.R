@@ -309,7 +309,34 @@ sort(unique(data$comm_name))
 
 
 
+# Data tables
+################################################################################
 
+# Build data
+data_ts <- data_orig  %>%
+  # Reduce to trips with halibut permits
+  left_join(permit_key, by=c("vessel_id", "tow_date"="date")) %>%
+  filter(permit_yn==T) %>%
+  # Reduce to halibut trips
+  filter(target_spp=="California halibut" & !is.na(catch_lb)) %>%
+  # Reduce to southern fishery
+  filter(set_lat_dd<34.6) %>%
+  # Summarize by tow
+  group_by(tow_id, tow_year, tow_date, set_lat_dd, set_block_id, block_id_orig, depth_avg_fathoms, species) %>%
+  summarize(catch_lb=sum(catch_lb)) %>%
+  ungroup() %>%
+  # Reduce to tows with CA halibut
+  group_by(tow_id) %>%
+  mutate(halibut_yn="California halibut" %in% species) %>%
+  ungroup() %>%
+  filter(halibut_yn==T) %>%
+  # Group
+  group_by(tow_year) %>%
+  summarise(halibut_lb=sum(catch_lb[species=="California halibut"]),
+            other_lb=sum(catch_lb[species!="California halibut"])) %>%
+  ungroup()
 
+# Export
+write.csv(data_ts, file=file.path(plotdir, "TableX_trawl_logbooks_time_series_southern.csv"), row.names=F)
 
 

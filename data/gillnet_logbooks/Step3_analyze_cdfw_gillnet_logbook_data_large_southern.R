@@ -298,6 +298,53 @@ ggsave(g, filename=file.path(plotdir, "FigX_gillnet_logbook_bycatch_ratio_by_dat
 
 
 
+# Data tables
+################################################################################
+
+data_ts <- data_orig %>%
+  # Convert block and mesh to numeric (multis won't work but that's okay because we're excluding)
+  mutate(block_id_num=as.numeric(block_id),
+         mesh_size_in_num=as.numeric(mesh_size_in)) %>%
+  # Add block info
+  left_join(blocks %>% select(block_id, block_lat_dd), by=c("block_id_num"="block_id")) %>%
+  # Filter to REGION and MESH SIZE of interest
+  filter(!is.na(block_lat_dd) & !is.na(mesh_size_in) & block_lat_dd<34.6 & mesh_size_in>=8.5) %>%
+  # Filter to trips of interest
+  filter(grepl("Halibut", target_spp) & catch_n>0) %>%
+  # Remove unknown catch
+  mutate(status=recode(status, "Lost"="Released")) %>%
+  filter(!is.na(comm_name) & !is.na(status)) %>%
+  # Add variables of interest
+  mutate(yday=lubridate::yday(date),
+         date_dummy=paste(2020, lubridate::month(date), lubridate::day(date), sep="-") %>% lubridate::ymd()) %>%
+  # Summarize catch by set
+  group_by(set_id, net_type, year, date, date_dummy, yday, block_id, depth_fa, comm_name, status) %>%
+  summarize(catch_n=sum(catch_n, na.rm=T)) %>%
+  ungroup() %>%
+  # Remove sets without any landed CA halibut
+  group_by(set_id) %>%
+  mutate(halibut_yn="California halibut" %in% comm_name) %>%
+  ungroup() %>%
+  filter(halibut_yn==T) %>%
+  # Group
+  group_by(year, status) %>%
+  summarize(halibut_n=sum(catch_n[comm_name=="California halibut"], na.rm = T),
+            other_n=sum(catch_n[comm_name!="California halibut"], na.rm = T)) %>%
+  ungroup() %>%
+  # Gather and spread
+  gather(key="type", value="catch_n", 3:ncol(.)) %>%
+  mutate(type1=paste(type, status, sep="-"),
+         type1=recode_factor(type1,
+                      "halibut_n-Kept"="halibut_landings_n",
+                      "other_n-Kept"="non_halibut_landings_n",
+                      "halibut_n-Released"="halibut_discards_n",
+                      "other_n-Released"="non_halibut_discards_n")) %>%
+  select(-c(type, status)) %>%
+  spread(key="type1", value="catch_n")
+
+# Export
+write.csv(data_ts, file=file.path(plotdir, "TableX_gillnet_logbooks_time_series_southern_large.csv"), row.names=F)
+
 
 
 

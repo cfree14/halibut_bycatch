@@ -300,5 +300,35 @@ data_sens <- data %>%
 
 
 
+# Table
+################################################################################
+
+
+# Calculate time series
+data_ts <- data_orig %>%
+  # Reduce to gear of interest
+  filter(gear_type=="Trawl") %>%
+  # Reduce to region of interest
+  left_join(blocks_df %>% select(block_id, block_lat_dd), by="block_id") %>%
+  filter(!is.na(block_lat_dd) & block_lat_dd >= 34.6) %>%
+  # Reduce to vessels with CA halibut permit
+  left_join(permit_key, by=c("vessel_id", "date")) %>%
+  filter(permit_yn==T) %>%
+  # Add trip id
+  mutate(trip_id=paste(receipt_id, date, gear, block_id, sep="-")) %>%
+  # Reduce to trips with CA halibut
+  group_by(trip_id) %>%
+  mutate(halibut_yn="Halibut, California" %in% species) %>%
+  ungroup() %>%
+  filter(halibut_yn==T) %>%
+  select(-halibut_yn) %>%
+  # Summarize by year
+  group_by(year) %>%
+  summarise(halibut_lb=sum(landings_lb[species=="Halibut, California"], na.rm=T),
+            other_lb=sum(landings_lb[species!="Halibut, California"], na.rm=T)) %>%
+  ungroup()
+
+# Export
+write.csv(data_ts, file=file.path(plotdir, "TableX_landing_receipt_time_series_trawl_northern.csv"), row.names=F)
 
 

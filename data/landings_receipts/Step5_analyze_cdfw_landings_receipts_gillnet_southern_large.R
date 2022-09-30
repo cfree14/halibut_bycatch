@@ -277,10 +277,34 @@ ggsave(g, filename=file.path(plotdir, "FigX_landing_receipts_bycatch_ratio_by_da
        width=6.5, height=5.5, units="in", dpi=600)
 
 
+# Table
+################################################################################
 
 
+# Calculate time series
+data_ts <- data_orig %>%
+  # Add block info
+  left_join(blocks_df %>% select(block_id, block_lat_dd), by="block_id") %>%
+  # Reduce to GILLNET of interest
+  filter(gear %in% c( "Large mesh set gn",  "Large mesh drift gn")) %>% # "Small mesh set gn", "Small mesh drift gn",
+  # Reduce to REGION of interest
+  filter(block_lat_dd<34.6 & !is.na(block_lat_dd)) %>%
+  # Add trip id
+  mutate(trip_id=paste(receipt_id, date, gear, block_id, sep="-")) %>%
+  # Reduce to trips with CA halibut
+  group_by(trip_id) %>%
+  mutate(halibut_yn="Halibut, California" %in% species) %>%
+  ungroup() %>%
+  filter(halibut_yn==T) %>%
+  select(-halibut_yn) %>%
+  # Summarize by year
+  group_by(year) %>%
+  summarise(halibut_lb=sum(landings_lb[species=="Halibut, California"], na.rm=T),
+            other_lb=sum(landings_lb[species!="Halibut, California"], na.rm=T)) %>%
+  ungroup()
 
-
+# Export
+write.csv(data_ts, file=file.path(plotdir, "TableX_landing_receipt_time_series_gillnet_southern_large.csv"), row.names=F)
 
 
 
