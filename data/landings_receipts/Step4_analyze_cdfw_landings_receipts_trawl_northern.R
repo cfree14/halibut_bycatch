@@ -294,7 +294,7 @@ ggsave(g, filename=file.path(plotdir, "FigX_landings_receipts_bycatch_ratio_by_d
 
 
 data_sens <- data %>%
-  filter(comm_name %in% c("Silver salmon", "Yelloweye rockfish", "Green sturgeon"))
+  filter(comm_name %in% c("Silver salmon", "Yelloweye rockfish", "Green sturgeon", "Giant sea bass"))
 
 
 

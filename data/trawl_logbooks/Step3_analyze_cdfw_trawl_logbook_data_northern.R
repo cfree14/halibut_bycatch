@@ -302,7 +302,7 @@ ggsave(g, filename=file.path(plotdir, "FigX_trawl_logbook_bycatch_ratio_by_date_
 #######################################
 
 data_sens <- data %>%
-  filter(comm_name %in% c("Silver salmon", "Yelloweye rockfish", "Green sturgeon"))
+  filter(comm_name %in% c("Silver salmon", "Yelloweye rockfish", "Green sturgeon", "Giant sea bass"))
 
 sort(unique(data$comm_name))
 

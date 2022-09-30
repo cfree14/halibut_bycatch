@@ -59,28 +59,42 @@ data <- data_orig %>%
   mutate(species=stringr::str_to_sentence(species),
          species=gsub(" unid", "", species)) %>%
   # Reduce to sensitive species
-  filter(species %in% c("Yelloweye rockfish", "Green sturgeon", "Silver salmon"))
+  filter(species %in% c("Yelloweye rockfish", "Green sturgeon", "Silver salmon", "Giant sea bass"))
 
-
+# Setup theme
+my_theme <-  theme(axis.text=element_text(size=5),
+                   axis.title=element_text(size=6),
+                   legend.text=element_text(size=6),
+                   legend.title=element_text(size=6),
+                   strip.text=element_text(size=6),
+                   plot.title=element_text(size=7),
+                   # Gridlines
+                   panel.grid.major = element_blank(),
+                   panel.grid.minor = element_blank(),
+                   panel.background = element_blank(),
+                   axis.line = element_line(colour = "black"),
+                   # Legend
+                   legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
 g <- ggplot(data, aes(x=year, y=ratio)) +
-  facet_wrap(~species, scale="free_y") +
+  facet_wrap(~ratio_type) +
   # Reference line
   geom_hline(yintercept = 1, color="grey50", linetype="dotted") +
   # Line
   geom_line() +
+  geom_point() +
   # Labels
-  labs(x="", y="Bycatch ratio\n(all bycatch / retained halibut catch)", title="GEMM OA CA Halibut bycatch ratios") +
+  labs(x="", y="Bycatch ratio\n(GSB bycatch / retained halibut catch)",
+       title="GEMM OA CA Halibut bycatch ratios - giant sea bass") +
   # Axis
   scale_y_continuous(lim=c(0,NA)) +
   scale_x_continuous(breaks=seq(2000, 2020, 5), lim=c(2000, 2020)) +
   # Theme
-  theme_bw() + theme1 +
-  theme(strip.text = element_text(size=6))
+  theme_bw() + my_theme
 g
 
 # Export plot
-ggsave(g, filename=file.path(plotdir, "FigX_gemm_oa_halibut_sector_bycatch_over_time_top20.png"),
-       width=6.5, height=5, units="in", dpi=600)
+ggsave(g, filename=file.path(plotdir, "FigX_gemm_oa_halibut_sector_gsb_bycatch_over_time.png"),
+       width=6.5, height=3, units="in", dpi=600)
 

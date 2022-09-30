@@ -25,7 +25,7 @@ spp_key <- readRDS(file=file.path(outdir, "SWFSC_observer_program_spp_key.Rds"))
 ################################################################################
 
 spp_key1 <- spp_key %>%
-  filter(category %in% c("Seabirds", "Marine mammals", "Sea tutles") | comm_name %in% c("Silver salmon", "Green sturgeon", "Yelloweye rockfish"))
+  filter(category %in% c("Seabirds", "Marine mammals", "Sea tutles") | comm_name %in% c("Silver salmon", "Green sturgeon", "Yelloweye rockfish", "Giant sea bass"))
 
 
 # Build data
