@@ -61,6 +61,12 @@ data <- data_orig %>%
   # Reduce to sensitive species
   filter(species %in% c("Yelloweye rockfish", "Green sturgeon", "Silver salmon", "Giant sea bass"))
 
+# Expand data
+data_exp <- expand.grid(year=2003:2020,
+                        ratio_type=levels(data$ratio_type)) %>%
+  left_join(data) %>%
+  mutate(ratio=ifelse(is.na(ratio), 0, ratio))
+
 # Setup theme
 my_theme <-  theme(axis.text=element_text(size=5),
                    axis.title=element_text(size=6),
@@ -77,16 +83,16 @@ my_theme <-  theme(axis.text=element_text(size=5),
                    legend.background = element_rect(fill=alpha('blue', 0)))
 
 # Plot data
-g <- ggplot(data, aes(x=year, y=ratio)) +
+g <- ggplot(data_exp, aes(x=year, y=ratio)) +
   facet_wrap(~ratio_type) +
   # Reference line
-  geom_hline(yintercept = 1, color="grey50", linetype="dotted") +
+  # geom_hline(yintercept = 1, color="grey50", linetype="dotted") +
   # Line
   geom_line() +
   geom_point() +
   # Labels
-  labs(x="", y="Bycatch ratio\n(GSB bycatch / retained halibut catch)",
-       title="GEMM OA CA Halibut bycatch ratios - giant sea bass") +
+  labs(x="", y="Catch ratio\n(GSB catch / retained halibut catch)",
+       title="GEMM OA CA Halibut catch ratios - giant sea bass") +
   # Axis
   scale_y_continuous(lim=c(0,NA)) +
   scale_x_continuous(breaks=seq(2000, 2020, 5), lim=c(2000, 2020)) +

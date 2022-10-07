@@ -75,7 +75,8 @@ stats <- data_exp_uniq %>%
   count(vessel_id) %>%
   arrange(desc(n))
 data_ordered <-data_exp_uniq %>%
-  mutate(vessel_id=vessel_id %>% as.character() %>% factor(., levels=stats$vessel_id))
+  mutate(vessel_id=vessel_id %>% as.character() %>% factor(., levels=stats$vessel_id)) %>%
+  filter(date <= "2021-01-01")
 
 
 # Setup theme

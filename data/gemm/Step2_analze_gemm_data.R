@@ -264,7 +264,7 @@ ggsave(g, filename=file.path(plotdir, "FigX_gemm_oa_halibut_sector_bycatch_ratio
 
 # Build data
 data4 <- data3 %>%
-  filter(species %in% data3_order$species[1:20] & ratio_type=="All catch")
+  filter(species %in% data3_order$species[1:20] & ratio_type=="Discarded catch")
 
 # Plot data
 g <- ggplot(data4, aes(x=year, y=ratio)) +
@@ -274,7 +274,7 @@ g <- ggplot(data4, aes(x=year, y=ratio)) +
   # Line
   geom_line() +
   # Labels
-  labs(x="", y="Bycatch ratio\n(all bycatch / retained halibut catch)", title="GEMM OA CA Halibut bycatch ratios") +
+  labs(x="", y="Bycatch ratio\n(all discards / retained halibut catch)", title="GEMM OA CA Halibut bycatch ratios") +
   # Axis
   scale_y_continuous(lim=c(0,NA)) +
   scale_x_continuous(breaks=seq(2000, 2020, 5), lim=c(2000, 2020)) +

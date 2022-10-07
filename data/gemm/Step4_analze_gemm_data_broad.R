@@ -31,7 +31,7 @@ sort(unique(data_orig$sector))
 sectors_do <- c("At-Sea Hake CP", "At-Sea Hake MSCV", "Midwater Hake", "Midwater Hake EM", "Shoreside Hake", "Tribal At-Sea Hake",
                 "Directed P Halibut", "OA CA Halibut",
                 "LE Sablefish - Hook & Line", "LE Sablefish - Pot",
-                "Pink Shrimp", "Ridgeback Prawn Trawl", "Sea Cucumber Trawl")
+                "Pink Shrimp") # "Ridgeback Prawn Trawl", "Sea Cucumber Trawl")
 
 # Build data
 data <- data_orig %>%
@@ -121,7 +121,7 @@ my_theme <-  theme(axis.text=element_text(size=5),
 
 # Plot
 g <- ggplot(data, aes(x=year, y=catch_prop, fill=target_type, alpha=catch_catg)) +
-  facet_wrap(~sector, ncol=5, scales="free_y") +
+  facet_wrap(~sector, ncol=4, scales="free_y") +
   geom_bar(stat="identity", color="grey30", lwd=0.1) +
   # Labels
   labs(x="Year", y="Proportion of catch", title="GEMM catch estimates") +
@@ -130,8 +130,9 @@ g <- ggplot(data, aes(x=year, y=catch_prop, fill=target_type, alpha=catch_catg))
   scale_alpha_manual(name="Catch type", values=c(1, 0.5) %>% rev()) +
   # Theme
   theme_bw() + my_theme +
-  theme(legend.position = c(0.8, 0.15),
-        legend.box = "horizontal")
+  theme(legend.position = c(0.9, 0.15),
+        legend.key.size=unit(0.3, "cm"),
+        legend.box = "vertical")
 g
 
 # Export plot
@@ -145,7 +146,7 @@ ggsave(g, filename=file.path(plotdir, "FigX_landings_discards_by_sectors_with_1t
 
 # Plot
 g <- ggplot(data2, aes(x=year, y=ratio, group=metric, color=target_type, linetype=catch_catg)) +
-  facet_wrap(~sector, ncol=5, scales="free_y") +
+  facet_wrap(~sector, ncol=4, scales="free_y") +
   geom_line() +
   # Reference line
   geom_hline(yintercept=1, linetype="dotted", lwd=0.3, color="grey60") +
@@ -156,8 +157,9 @@ g <- ggplot(data2, aes(x=year, y=ratio, group=metric, color=target_type, linetyp
   scale_linetype_discrete(name="Catch type") +
   # Theme
   theme_bw() + my_theme +
-  theme(legend.position = c(0.8, 0.15),
-        legend.box = "horizontal")
+  theme(legend.position = c(0.9, 0.15),
+        legend.key.size=unit(0.3, "cm"),
+        legend.box = "vertical")
 g
 
 # Export plot
